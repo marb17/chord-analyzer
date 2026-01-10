@@ -1,2 +1,2 @@
 # chord-analyzer
-A simple chord analyzer that outputs roman numerals a common progressions
+A chord analyzer that outputs roman numerals in a progression
