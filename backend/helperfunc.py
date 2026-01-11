@@ -1,6 +1,36 @@
 import re
 from chord_database import *
 
+def apply_slash_inversion(
+    semitones: list[int],
+    bass_note: str
+) -> list[int]:
+
+    bass_pc = KEY_TO_NUMBER[bass_note] % 12
+
+    # find index of bass note in chord
+    bass_index = None
+    for i, n in enumerate(semitones):
+        if n % 12 == bass_pc:
+            bass_index = i
+            break
+
+    if bass_index is None:
+        raise ValueError(f"Bass note {bass_note} not in chord")
+
+    # rotate
+    rotated = semitones[bass_index:] + [
+        n + 12 for n in semitones[:bass_index]
+    ]
+
+    return rotated
+
+def get_interval_diff(key1: str, key2: str) -> int:
+    key_num1 = KEY_TO_NUMBER[key1].copy()
+    key_num2 = KEY_TO_NUMBER[key2].copy()
+
+    return key_num2 - key_num1
+
 def get_chord_info(chord: str) -> dict:
     """
     :param chord: The input chord to be extracted
@@ -73,6 +103,30 @@ def get_intervals(base_key: str, quality: str, alterations: list[str], inversion
     output_list.sort(key=lambda x: INTERVAL_ORDER[x])
 
     return output_list
+
+def get_chord_notes(key_base: str, interval_list: list[str], inversion: str | None) -> list:
+    key_base_number = KEY_TO_NUMBER[key_base]
+
+    semitone_list = []
+
+    for counter in range(len(interval_list)):
+        semitone_list.append(INTERVAL_TO_SEMITONE[interval_list[counter]] + key_base_number + 12)
+
+    if inversion:
+        semitone_list = apply_slash_inversion(semitone_list, inversion)
+
+    number_to_key = {v: k for k, v in KEY_OCTAVE_TO_NUMBER.items()}
+    notes = [number_to_key[s] for s in semitone_list]
+
+    for note, interval, counter in zip(notes, interval_list, range(len(interval_list))):
+        if bool(re.match(r"#", interval)) and bool(re.match(r".b", note)):
+            notes[counter] = GET_EQUIV_ACCIDENTAL[notes[counter]]
+        elif bool(re.match(r"b", interval)) and bool(re.match(r".#", note)):
+            notes[counter] = GET_EQUIV_ACCIDENTAL[notes[counter]]
+
+
+
+    return notes
 
 if __name__ == "__main__":
     chord_interval_tests = [
@@ -263,17 +317,19 @@ if __name__ == "__main__":
          ['1', '3', '4', 'b7', 'b9', '#9', '#11', 'b13']),
     ]
 
-    for chord, expected in chord_interval_tests:
-        print(get_chord_info(chord), chord)
+    print(get_chord_notes('C', get_intervals(**get_chord_info("C7sus4add3b9#9#11b13no5")), ''))
 
-    print('-----')
-
-    correct = 0
-
-    for chord, expected in chord_interval_tests:
-        result = get_intervals(**get_chord_info(chord))
-        print(chord, result, "OK" if result == expected else "FAIL", "expected:" if result != expected else "", expected if result != expected else "")
-        if result == expected:
-            correct += 1
-
-    print(f"{correct}/{len(chord_interval_tests)} is right")
+    # for chord, expected in chord_interval_tests:
+    #     print(get_chord_info(chord), chord)
+    #
+    # print('-----')
+    #
+    # correct = 0
+    #
+    # for chord, expected in chord_interval_tests:
+    #     result = get_intervals(**get_chord_info(chord))
+    #     print(chord, result, "OK" if result == expected else "FAIL", "expected:" if result != expected else "", expected if result != expected else "")
+    #     if result == expected:
+    #         correct += 1
+    #
+    # print(f"{correct}/{len(chord_interval_tests)} is right")
