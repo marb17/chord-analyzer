@@ -1,10 +1,7 @@
 import re
 from chord_database import *
 
-def apply_slash_inversion(
-    semitones: list[int],
-    bass_note: str
-) -> list[int]:
+def apply_slash_inversion(semitones: list[int], bass_note: str) -> list[int]:
 
     bass_pc = KEY_TO_NUMBER[bass_note] % 12
 
@@ -123,8 +120,6 @@ def get_chord_notes(key_base: str, interval_list: list[str], inversion: str | No
             notes[counter] = GET_EQUIV_ACCIDENTAL[notes[counter]]
         elif bool(re.match(r"b", interval)) and bool(re.match(r".#", note)):
             notes[counter] = GET_EQUIV_ACCIDENTAL[notes[counter]]
-
-
 
     return notes
 
