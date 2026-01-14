@@ -28,6 +28,20 @@ def get_interval_diff(key1: str, key2: str) -> int:
 
     return key_num2 - key_num1
 
+def get_tritone_key(key_base: str) -> str:
+    key_num = KEY_TO_NUMBER[key_base]
+
+    key_num += 6
+
+    if key_num > 12:
+        key_num -= 12
+    elif key_num < 0:
+        key_num += 12
+
+    number_to_key = {v: k for k, v in KEY_TO_NUMBER.items()}
+
+    return number_to_key[key_num]
+
 def get_chord_info(chord: str) -> dict:
     """
     :param chord: The input chord to be extracted
@@ -312,7 +326,7 @@ if __name__ == "__main__":
          ['1', '3', '4', 'b7', 'b9', '#9', '#11', 'b13']),
     ]
 
-    print(get_chord_notes('C', get_intervals(**get_chord_info("C7sus4add3b9#9#11b13no5")), ''))
+    # print(get_chord_notes('C', get_intervals(**get_chord_info("C7sus4add3b9#9#11b13no5")), ''))
 
     # for chord, expected in chord_interval_tests:
     #     print(get_chord_info(chord), chord)

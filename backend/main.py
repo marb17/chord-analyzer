@@ -54,7 +54,7 @@ def get_roman_numerals(chords_input: list[dict], song_key: str) -> list[dict]:
 
     return chords_data
 
-def find_251_movement(chords_input: list[dict]) -> list[dict]:
+def find_251_movement(chords_input: list[dict]) -> list[dict] | None:
     if len(chords_input) < 3:
         pass
     else:
@@ -74,8 +74,8 @@ def find_251_movement(chords_input: list[dict]) -> list[dict]:
 
                     roman_numerals = chords_roman[0]['roman_numeral'].copy(), chords_roman[1]['roman_numeral'].copy(), chords_roman[2]['roman_numeral'].copy()
 
-                    #! add tritone sub in aswell
                     is_251 = []
+                    is_251_tritone = []
 
                     for chord, correct in zip(roman_numerals, ['ii', 'V', 'I']):
                         if correct != 'I' and chord[0] == correct:
@@ -84,6 +84,14 @@ def find_251_movement(chords_input: list[dict]) -> list[dict]:
                             is_251.append(True)
                         else:
                             is_251.append(False)
+
+                    for chord, correct in zip(roman_numerals, ['ii', 'I#', 'I']):
+                        if correct != 'I' and chord[0] == correct:
+                            is_251_tritone.append(True)
+                        elif correct == 'I' and chord[0].upper() == correct:
+                            is_251_tritone.append(True)
+                        else:
+                            is_251_tritone.append(False)
 
                     if is_251 == [True, True, True]:
                         skip_counter += 2
@@ -100,31 +108,229 @@ def find_251_movement(chords_input: list[dict]) -> list[dict]:
                                              roman_numerals[1][1],
                                              roman_numerals[2][1])
 
-                        chord_1['roman_numeral_251'] = f"{chord_1_roman}{chord_1_quality}/{chord_3['roman_numeral'][0][0]}"
-                        chord_2['roman_numeral_251'] = f"{chord_2_roman}{chord_2_quality}/{chord_3['roman_numeral'][0][0]}"
+                        chord_1['roman_numeral_251'] = f"{chord_1_roman}{chord_1_quality}/{chord_3['roman_numeral'][0]}"
+                        chord_2['roman_numeral_251'] = f"{chord_2_roman}{chord_2_quality}/{chord_3['roman_numeral'][0]}"
+                        chord_3['roman_numeral_251'] = ""
+
+                        chord_1['roman_numeral_251_tritone'] = ""
+                        chord_2['roman_numeral_251_tritone'] = ""
+                        chord_3['roman_numeral_251_tritone'] = ""
 
                         chords_data.append(chord_1)
                         chords_data.append(chord_2)
                         chords_data.append(chord_3)
+
+                    elif is_251_tritone == [True, True, True]:
+                        skip_counter += 2
+
+                        (chord_1_roman,
+                         chord_2_roman,
+                         chord_3_roman,
+                         chord_1_quality,
+                         chord_2_quality,
+                         chord_3_quality) = (roman_numerals[0][0],
+                                             roman_numerals[1][0],
+                                             roman_numerals[2][0],
+                                             roman_numerals[0][1],
+                                             roman_numerals[1][1],
+                                             roman_numerals[2][1])
+
+                        chord_1['roman_numeral_251_tritone'] = f"{chord_1_roman}{chord_1_quality}/{chord_3['roman_numeral'][0][0]}"
+                        chord_2['roman_numeral_251_tritone'] = f"{SHARP_TO_FLAT_ROMAN[chord_2_roman]}{chord_2_quality}/{chord_3['roman_numeral'][0][0]}"
+                        chord_3['roman_numeral_251_tritone'] = ""
+
+                        chord_1['roman_numeral_251'] = ""
+                        chord_2['roman_numeral_251'] = ""
+                        chord_3['roman_numeral_251'] = ""
+
+                        chords_data.append(chord_1)
+                        chords_data.append(chord_2)
+                        chords_data.append(chord_3)
+
                     else:
+
                         chord_1 = chords_input[counter].copy()
+                        chord_1['roman_numeral_251'] = ""
+                        chord_1['roman_numeral_251_tritone'] = ""
                         chords_data.append(chord_1)
                 except IndexError:
                     chord_1 = chords_input[counter].copy()
+                    chord_1['roman_numeral_251'] = ""
+                    chord_1['roman_numeral_251_tritone'] = ""
                     chords_data.append(chord_1)
 
         return chords_data
 
-if __name__ == "__main__":
-    # for item in get_roman_numerals(get_base_info(extract_chords('Eb - Dm7b5 - G7 - Cm7 - Bbm7 - Eb7 - Abmaj7 - Bb7 - Gm7 - Cm7 - F7sus4 - Bmaj7 - Bb7 - Cm - Baug - Eb/Bb - Fsus4 - F - Fm - Gm - Ab - Bb - B -Db - D7')), "Eb"):
-    asdfjkl = get_roman_numerals(get_base_info(extract_chords('Eb - Dm7b5 - G7 - Cm7 - Bbm7 - Eb7 - Abmaj7 - Bb7')), "Eb")
+def find_51_movement(chords_input: list[dict]) -> list[dict] | None:
+    if len(chords_input) < 2:
+        pass
+    else:
+        chords_data = []
+        skip_counter = 0
+        for counter in range(len(chords_input)):
+            if skip_counter > 0:
+                skip_counter -= 1
+                pass
+            else:
+                try:
+                    chord_1 = chords_input[counter].copy()
+                    chord_2 = chords_input[counter + 1].copy()
 
+                    chords_roman = get_roman_numerals([chord_1, chord_2], chord_2['key_base'])
+
+                    roman_numerals = chords_roman[0]['roman_numeral'].copy(), chords_roman[1]['roman_numeral'].copy()
+
+                    is_51 = []
+                    is_51_tritone = []
+
+                    for chord, correct in zip(roman_numerals, ['V', 'I']):
+                        if correct != 'I' and chord[0] == correct:
+                            is_51.append(True)
+                        elif correct == 'I' and chord[0].upper() == correct:
+                            is_51.append(True)
+                        else:
+                            is_51.append(False)
+
+                    for chord, correct in zip(roman_numerals, ['I#', 'I']):
+                        if correct != 'I' and chord[0] == correct:
+                            is_51_tritone.append(True)
+                        elif correct == 'I' and chord[0].upper() == correct:
+                            is_51_tritone.append(True)
+                        else:
+                            is_51_tritone.append(False)
+
+                    if is_51 == [True, True]:
+                        skip_counter += 1
+
+                        (chord_1_roman,
+                         chord_2_roman,
+                         chord_1_quality,
+                         chord_2_quality,) = (roman_numerals[0][0],
+                                             roman_numerals[1][0],
+                                             roman_numerals[0][1],
+                                             roman_numerals[1][1],)
+
+                        chord_1['roman_numeral_51'] = f"{chord_1_roman}{chord_1_quality}/{chord_2['roman_numeral'][0]}"
+                        chord_2['roman_numeral_51'] = ""
+
+                        chord_1['roman_numeral_51_tritone'] = ""
+                        chord_2['roman_numeral_51_tritone'] = ""
+
+                        chords_data.append(chord_1)
+                        chords_data.append(chord_2)
+
+                    elif is_51_tritone == [True, True]:
+                        skip_counter += 1
+
+                        (chord_1_roman,
+                         chord_2_roman,
+                         chord_1_quality,
+                         chord_2_quality,) = (roman_numerals[0][0],
+                                              roman_numerals[1][0],
+                                              roman_numerals[0][1],
+                                              roman_numerals[1][1],)
+
+                        chord_1['roman_numeral_51_tritone'] = f"{SHARP_TO_FLAT_ROMAN[chord_1_roman]}{chord_1_quality}/{chord_2['roman_numeral'][0][0]}"
+                        chord_2['roman_numeral_51_tritone'] = ""
+
+                        chord_1['roman_numeral_51'] = ""
+                        chord_2['roman_numeral_51'] = ""
+
+                        chords_data.append(chord_1)
+                        chords_data.append(chord_2)
+                    else:
+
+                        chord_1 = chords_input[counter].copy()
+                        chord_1['roman_numeral_51'] = ""
+                        chord_1['roman_numeral_51_tritone'] = ""
+                        chords_data.append(chord_1)
+                except IndexError:
+                    chord_1 = chords_input[counter].copy()
+                    chord_1['roman_numeral_51'] = ""
+                    chord_1['roman_numeral_51_tritone'] = ""
+                    chords_data.append(chord_1)
+
+        return chords_data
+
+def find_parallel_minor(chords_input: list[dict]) -> list[dict] | None:
+    chords_data = []
+
+    for counter in range(len(chords_input) - 1):
+        chord_1 = chords_input[counter].copy()
+        chord_2 = chords_input[counter + 1].copy()
+
+        chord_1_key_base = chord_1['key_base']
+        chord_2_key_base = chord_2['key_base']
+
+        chord_1_interval = chord_1['intervals']
+        chord_2_interval = chord_2['intervals']
+
+        if 'b3' in chord_1_interval:
+            chord_1_quality = 'min'
+        elif '3' in chord_1_interval:
+            chord_1_quality = 'maj'
+        else:
+            chord_1_quality = ''
+
+        if 'b3' in chord_2_interval:
+            chord_2_quality = 'min'
+        elif '3' in chord_2_interval:
+            chord_2_quality = 'maj'
+        else:
+            chord_2_quality = ''
+
+        is_same_key = True if chord_1_key_base == chord_2_key_base else False
+
+        if chord_1_quality == 'maj' and chord_2_quality == 'min' and is_same_key:
+            chord_1['parallel_mode_shift'] = f'I/{chord_2['roman_numeral'][0]}'
+            chords_data.append(chord_1)
+        elif chord_1_quality == 'min' and chord_2_quality == 'maj' and is_same_key:
+            chord_1['parallel_mode_shift'] = f'i/{chord_2['roman_numeral'][0]}'
+            chords_data.append(chord_1)
+        else:
+            chord_1['parallel_mode_shift'] = ''
+            chords_data.append(chord_1)
+
+    chords_data.append(chords_input[-1])
+
+    return chords_data
+
+# ill make it pretty later....
+def pretty_print_chords(chords_data: list[dict]) -> None:
+    lines_to_print = []
+
+    keys_chord_dict = chords_data[0].keys()
+
+    for key in keys_chord_dict:
+        lines_to_print.append([])
+
+    for chord, counter_1 in zip(chords_data, range(len(keys_chord_dict))):
+        for key, counter_2 in zip(keys_chord_dict, range(len(keys_chord_dict))):
+            try:
+                lines_to_print[counter_2].append(chord[key].copy())
+            except AttributeError:
+                lines_to_print[counter_2].append(chord[key])
+
+    for item in lines_to_print:
+        print(item)
+
+if __name__ == "__main__":
+    # asdfjkl = get_roman_numerals(get_base_info(extract_chords('Eb - Dm7b5 - G7 - Cm7 - Bbm7 - Eb7 - Abmaj7 - Bb7 - Gm7 - Cm7 - F7sus4 - Bmaj7 - Bb7 - Cm - Baug - Eb/Bb - Fsus4 - F - Fm - Gm - Ab - Bb - B - Db - D7')), "Eb")
+    # asdfjkl = get_roman_numerals(get_base_info(extract_chords('Eb - Dm7b5 - G7 - Cm7 - Bbm7 - Eb7 - Abmaj7 - Bb7')), "Eb")
+    # asdfjkl = get_roman_numerals(get_base_info(extract_chords('Dm - G - C')), "Bb")
+    asdfjkl = get_roman_numerals(get_base_info(extract_chords('C - F - Fm - C - Fm - F - C')), "C")
     # for item in asdfjkl:
     #     print(json.dumps(item, indent=4))
     #     pass
 
     print('-----')
 
-    for item in find_251_movement(asdfjkl):
+    asdfjkl = find_251_movement(asdfjkl)
+    asdfjkl = find_51_movement(asdfjkl)
+    asdfjkl = find_parallel_minor(asdfjkl)
+
+    for item in asdfjkl:
         print(json.dumps(item, indent=4))
         pass
+
+    # pretty_print_chords(asdfjkl)
