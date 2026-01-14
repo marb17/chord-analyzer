@@ -316,3 +316,27 @@ NUMBER_TO_ROMAN = {
     11: "VI#",
     12: "VII",
 }
+
+NUMBER_TO_ROMAN_FLAT = {
+    1:  "I",
+    2:  "bII",
+    3:  "II",
+    4:  "bIII",
+    5:  "III",
+    6:  "IV",
+    7:  "bV",
+    8:  "V",
+    9:  "bVI",
+    10: "VI",
+    11: "bVII",
+    12: "VII",
+}
+
+SHARP_TO_FLAT_ROMAN = {
+    "I#":   "bII",
+    "II#":  "bIII",
+    "III#": "bIV",
+    "IV#":  "bV",
+    "V#":   "bVI",
+    "VI#":  "bVII",
+}
