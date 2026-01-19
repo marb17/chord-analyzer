@@ -23,6 +23,7 @@ def get_base_info(chords_input: list[str]) -> list[dict]:
         main_data = helperfunc.get_chord_info(chord)
         interval_data = helperfunc.get_intervals(**main_data)
         note_data = helperfunc.get_chord_notes(main_data['base_key'], interval_data, main_data['inversion'])
+        note_data_alt = helperfunc.get_chord_notes(main_data['base_key'], interval_data, main_data['inversion'], lower_octave=True)
 
         chords_data.append(
             {
@@ -32,7 +33,8 @@ def get_base_info(chords_input: list[str]) -> list[dict]:
                 'alterations': main_data['alterations'],
                 'inversion': main_data['inversion'],
                 'intervals': interval_data,
-                'notes': note_data
+                'notes': note_data,
+                'notes_alt': note_data_alt
             }
         )
 
@@ -252,6 +254,28 @@ def find_51_movement(chords_input: list[dict]) -> list[dict] | None:
 
         return chords_data
 
+def find_chord_relative_to_next(chords_input: list[dict]) -> list[dict] | None:
+    chords_data = []
+
+    for counter in range(len(chords_input)):
+        chord_data = {}
+        chord = chords_input[counter].copy()
+
+        for counter_2 in range(1, 5):
+            try:
+                chord_precede = chords_input[counter + counter_2].copy()
+
+                chord_roman = get_roman_numerals([chord], chord_precede['key_base'])[0]
+
+                chord_data[f'{counter_2}_ahead'] = f"{chord_roman['roman_numeral'][0]}{chord_roman['roman_numeral'][1]}/{chord_precede['roman_numeral'][0]}"
+            except IndexError:
+                break
+
+        chord['chord_next_relative'] = chord_data
+        chords_data.append(chord)
+
+    return chords_data
+
 def find_parallel_minor(chords_input: list[dict]) -> list[dict] | None:
     chords_data = []
 
@@ -295,6 +319,60 @@ def find_parallel_minor(chords_input: list[dict]) -> list[dict] | None:
 
     return chords_data
 
+def find_neighbouring_next_notes(chords_input: list[dict]) -> list[dict] | None:
+    chords_data = []
+
+    for counter in range(len(chords_input) - 1):
+        chord_1 = chords_input[counter].copy()
+        chord_2 = chords_input[counter + 1].copy()
+
+        chord_1_notes = chord_1['notes']
+        chord_1_notes_alt = chord_1['notes_alt']
+        chord_2_notes = chord_2['notes']
+        chord_2_notes_alt = chord_2['notes_alt']
+
+        chord_1_number = [KEY_OCTAVE_TO_NUMBER[note] for note in chord_1_notes]
+        chord_1_number_alt = [KEY_OCTAVE_TO_NUMBER[note] for note in chord_1_notes_alt]
+        chord_2_number = [KEY_OCTAVE_TO_NUMBER[note] for note in chord_2_notes]
+        chord_2_number_alt = [KEY_OCTAVE_TO_NUMBER[note] for note in chord_2_notes_alt]
+
+        difference_list = []
+        difference_list_strict = []
+        difference_list_very_strict = []
+
+        for chord_1_note, chord_1_note_alt in zip(chord_1_number, chord_1_number_alt):
+            holding_number = chord_2_number[0] - chord_1_note
+            holding_number_strict = chord_2_number[0] - chord_1_note
+
+            for chord_2_note, chord_2_note_alt in zip(chord_2_number, chord_2_number_alt):
+                if abs(holding_number) > abs(chord_2_note - chord_1_note):
+                    holding_number = chord_2_note - chord_1_note
+                if abs(holding_number) > abs(chord_2_note_alt - chord_1_note):
+                    holding_number = chord_2_note_alt - chord_1_note
+                if abs(holding_number) > abs(chord_2_note - chord_1_note_alt):
+                    holding_number = chord_2_note - chord_1_note_alt
+                if abs(holding_number) > abs(chord_2_note_alt - chord_1_note_alt):
+                    holding_number = chord_2_note_alt - chord_1_note_alt
+
+                if abs(holding_number_strict) > abs(chord_2_note - chord_1_note):
+                    holding_number_strict = chord_2_note - chord_1_note
+
+            difference_list.append(holding_number)
+            difference_list_strict.append(holding_number_strict)
+
+        for chord_1_note, chord_2_note in zip(chord_1_number, chord_2_number):
+            difference_list_very_strict.append(chord_2_note - chord_1_note)
+
+        for _ in range(len(chord_1_number) - len(difference_list_very_strict)):
+            difference_list_very_strict.append(None)
+
+        chord_1['next_chord_note_difference'] = difference_list
+        chord_1['next_chord_note_difference_strict'] = difference_list_strict
+        chord_1['next_chord_note_difference_very_strict'] = difference_list_very_strict
+        chords_data.append(chord_1)
+
+    return chords_data
+
 # ill make it pretty later....
 def pretty_print_chords(chords_data: list[dict]) -> None:
     lines_to_print = []
@@ -316,9 +394,9 @@ def pretty_print_chords(chords_data: list[dict]) -> None:
 
 if __name__ == "__main__":
     # asdfjkl = get_roman_numerals(get_base_info(extract_chords('Eb - Dm7b5 - G7 - Cm7 - Bbm7 - Eb7 - Abmaj7 - Bb7 - Gm7 - Cm7 - F7sus4 - Bmaj7 - Bb7 - Cm - Baug - Eb/Bb - Fsus4 - F - Fm - Gm - Ab - Bb - B - Db - D7')), "Eb")
-    # asdfjkl = get_roman_numerals(get_base_info(extract_chords('Eb - Dm7b5 - G7 - Cm7 - Bbm7 - Eb7 - Abmaj7 - Bb7')), "Eb")
+    asdfjkl = get_roman_numerals(get_base_info(extract_chords('Eb - Dm7b5 - G7 - Cm7 - Bbm7 - Eb7 - Abmaj7 - Bb7')), "Eb")
     # asdfjkl = get_roman_numerals(get_base_info(extract_chords('Dm - G - C')), "Bb")
-    asdfjkl = get_roman_numerals(get_base_info(extract_chords('C - F - Fm - C - Fm - F - C')), "C")
+    # asdfjkl = get_roman_numerals(get_base_info(extract_chords('C - F - Fm - C - Fm - F - C')), "C")
     # for item in asdfjkl:
     #     print(json.dumps(item, indent=4))
     #     pass
@@ -328,6 +406,8 @@ if __name__ == "__main__":
     asdfjkl = find_251_movement(asdfjkl)
     asdfjkl = find_51_movement(asdfjkl)
     asdfjkl = find_parallel_minor(asdfjkl)
+    asdfjkl = find_neighbouring_next_notes(asdfjkl)
+    asdfjkl = find_chord_relative_to_next(asdfjkl)
 
     for item in asdfjkl:
         print(json.dumps(item, indent=4))
