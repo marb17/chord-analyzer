@@ -115,13 +115,14 @@ def get_intervals(base_key: str, quality: str, alterations: list[str], inversion
 
     return output_list
 
-def get_chord_notes(key_base: str, interval_list: list[str], inversion: str | None) -> list:
+def get_chord_notes(key_base: str, interval_list: list[str], inversion: str | None, lower_octave=False) -> list:
     key_base_number = KEY_TO_NUMBER[key_base]
 
     semitone_list = []
 
+    octave = 0 if lower_octave else 12
     for counter in range(len(interval_list)):
-        semitone_list.append(INTERVAL_TO_SEMITONE[interval_list[counter]] + key_base_number + 12)
+        semitone_list.append(INTERVAL_TO_SEMITONE[interval_list[counter]] + key_base_number + octave)
 
     if inversion:
         semitone_list = apply_slash_inversion(semitone_list, inversion)
