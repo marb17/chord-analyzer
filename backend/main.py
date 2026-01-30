@@ -331,10 +331,10 @@ def find_neighbouring_next_notes(chords_input: list[dict]) -> list[dict] | None:
         chord_2_notes = chord_2['notes']
         chord_2_notes_alt = chord_2['notes_alt']
 
-        chord_1_number = [KEY_OCTAVE_TO_NUMBER[note] for note in chord_1_notes]
-        chord_1_number_alt = [KEY_OCTAVE_TO_NUMBER[note] for note in chord_1_notes_alt]
-        chord_2_number = [KEY_OCTAVE_TO_NUMBER[note] for note in chord_2_notes]
-        chord_2_number_alt = [KEY_OCTAVE_TO_NUMBER[note] for note in chord_2_notes_alt]
+        chord_1_number = [helperfunc.note_to_midi(note) for note in chord_1_notes]
+        chord_1_number_alt = [helperfunc.note_to_midi(note) for note in chord_1_notes_alt]
+        chord_2_number = [helperfunc.note_to_midi(note) for note in chord_2_notes]
+        chord_2_number_alt = [helperfunc.note_to_midi(note) for note in chord_2_notes_alt]
 
         difference_list = []
         difference_list_strict = []

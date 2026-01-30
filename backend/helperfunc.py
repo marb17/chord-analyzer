@@ -1,6 +1,34 @@
 import re
 from chord_database import *
 
+def note_to_midi(note: str) -> int:
+    # split note and octave
+    if note[-2] in ("#", "b"):
+        pitch = note[:-2]
+        octave = int(note[-2:])
+    else:
+        pitch = note[:-1]
+        octave = int(note[-1])
+
+    if pitch not in KEY_TO_NUMBER:
+        raise ValueError(f"Invalid note name: {note}")
+
+    midi = 12 * (octave + 1) + (KEY_TO_NUMBER[pitch] - 1)
+
+    if not 0 <= midi <= 127:
+        raise ValueError(f"MIDI note out of range: {midi}")
+
+    return midi
+
+def midi_to_note(midi: int) -> str:
+    if not 0 <= midi <= 127:
+        raise ValueError("MIDI must be between 0 and 127")
+
+    number = midi % 12
+    octave = (midi // 12) - 1
+
+    return f"{NUMBER_TO_KEY[number]}{octave}"
+
 def apply_slash_inversion(semitones: list[int], bass_note: str) -> list[int]:
 
     bass_pc = KEY_TO_NUMBER[bass_note] % 12
@@ -127,8 +155,7 @@ def get_chord_notes(key_base: str, interval_list: list[str], inversion: str | No
     if inversion:
         semitone_list = apply_slash_inversion(semitone_list, inversion)
 
-    number_to_key = {v: k for k, v in KEY_OCTAVE_TO_NUMBER.items()}
-    notes = [number_to_key[s] for s in semitone_list]
+    notes = [midi_to_note(s) for s in semitone_list]
 
     for note, interval, counter in zip(notes, interval_list, range(len(interval_list))):
         if bool(re.match(r"#", interval)) and bool(re.match(r".b", note)):
@@ -327,19 +354,19 @@ if __name__ == "__main__":
          ['1', '3', '4', 'b7', 'b9', '#9', '#11', 'b13']),
     ]
 
-    # print(get_chord_notes('C', get_intervals(**get_chord_info("C7sus4add3b9#9#11b13no5")), ''))
+    print(get_chord_notes('C', get_intervals(**get_chord_info("C7sus4add3b9#9#11b13no5")), ''))
 
-    # for chord, expected in chord_interval_tests:
-    #     print(get_chord_info(chord), chord)
-    #
-    # print('-----')
-    #
-    # correct = 0
-    #
-    # for chord, expected in chord_interval_tests:
-    #     result = get_intervals(**get_chord_info(chord))
-    #     print(chord, result, "OK" if result == expected else "FAIL", "expected:" if result != expected else "", expected if result != expected else "")
-    #     if result == expected:
-    #         correct += 1
-    #
-    # print(f"{correct}/{len(chord_interval_tests)} is right")
+    for chord, expected in chord_interval_tests:
+        print(get_chord_info(chord), chord)
+
+    print('-----')
+
+    correct = 0
+
+    for chord, expected in chord_interval_tests:
+        result = get_intervals(**get_chord_info(chord))
+        print(chord, result, "OK" if result == expected else "FAIL", "expected:" if result != expected else "", expected if result != expected else "")
+        if result == expected:
+            correct += 1
+
+    print(f"{correct}/{len(chord_interval_tests)} is right")
