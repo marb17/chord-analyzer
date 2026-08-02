@@ -2,11 +2,12 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import List
 
+from backend.engine.utils.functions.midi import midi_to_name
 
 
 class Quality(Enum):
     # Triads
-    MAJOR = ([0, 4, 7], "maj")
+    MAJOR = ([0, 4, 7], "")
     MINOR = ([0, 3, 7], "min")
     AUGMENTED = ([0, 4, 8], "aug")
     DIMINISHED = ([0, 3, 6], "dim")
@@ -73,3 +74,33 @@ class Chord:
     extensions: List[Extension] = field(default_factory=list)
     alterations: List[Alteration] = field(default_factory=list)
     omits: List[Omit] = field(default_factory=list)
+    inversion: int | None = None
+    complexity: float = field(init=False)
+    confidence: float = 0.0
+
+    def __str__(self):
+        final_name = ""
+
+        final_name += midi_to_name(self.key)[0][:1] #TODO add proper accidental shit
+        final_name += self.quality.standard_name
+        for ext in self.extensions:
+            final_name += ext.standard_name
+        for alt in self.alterations: #TODO add exceptions liek C7Sus4
+            final_name += alt.standard_name
+        for omt in self.omits:
+            final_name += omt.standard_name
+        if self.inversion:
+            final_name += "/" + midi_to_name(self.inversion)[0][:1]
+
+        return final_name
+
+    def __post_init__(self):
+        cplx = 0.0
+
+        cplx += len(self.extensions) * 1.0
+        cplx += len(self.alterations) * 1.2
+        cplx += len(self.omits) * 1.4
+        cplx += 0.5 if self.inversion else 0
+
+        self.complexity = cplx
+

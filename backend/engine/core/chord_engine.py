@@ -1,4 +1,4 @@
-from backend.engine.utils.classes.dataclass import Chord, Omit, Alteration, Extension
+from backend.engine.utils.classes.dataclass import Chord, Omit, Alteration, Extension, Quality
 from backend.engine.utils.default.default_var import MUSICAL_INTERVALS
 from backend.engine.utils.functions.midi import midi_to_name
 
@@ -9,6 +9,8 @@ class ChordEngine:
 
     def notes_to_chord(self, notes: list[int]) -> list[Chord]:
         no_dup_notes = sorted(list(set(notes)))
+
+        chords = list()
 
         for base_note in no_dup_notes:
             all_semitone_relative = sorted([note - base_note for note in no_dup_notes])
@@ -127,7 +129,7 @@ class ChordEngine:
             best_quality_name = max(scores, key=scores.get)
             highest_score = scores[best_quality_name]
 
-            additional_notes = [note for note in all_semitone_relative if note % 12 not in triad_mapping[best_quality_name]]
+            additional_notes = [note if note > 0 else note % 12 for note in all_semitone_relative if note % 12 not in triad_mapping[best_quality_name]]
             missing_notes = [note for note in triad_mapping[best_quality_name] if note not in pitch_classes]
 
             chord_omits = list()
@@ -167,18 +169,41 @@ class ChordEngine:
                 chord_extensions.append(Extension.FLAT_13)
 
 
-            print(f"Top Quality: {best_quality_name} ({highest_score} points)")
+            # print(f"Top Quality: {best_quality_name} ({highest_score} points)")
 
-            # print(pitch_classes)
-            # print(midi_to_name(candidate_note), midi_to_name(bass_note))
-            print(is_major, is_minor, is_dim, is_aug, is_sus4, is_sus2)
-            # print([midi_to_name(note + base_note) for note in all_semitone_relative])
+            # # print(pitch_classes)
+            # # print(midi_to_name(candidate_note), midi_to_name(bass_note))
+            # print(is_major, is_minor, is_dim, is_aug, is_sus4, is_sus2)
+            # # print([midi_to_name(note + base_note) for note in all_semitone_relative])
             print(additional_notes)
             print(missing_notes)
-            print(chord_omits)
-            print(chord_alterations)
-            print(chord_extensions)
-            print()
+            # print(chord_omits)
+            # print(chord_alterations)
+            # print(chord_extensions)
+            # print()
+
+            qualities = {
+                "is_major": Quality.MAJOR,
+                "is_minor": Quality.MINOR,
+                "is_dim": Quality.DIMINISHED,
+                "is_aug": Quality.AUGMENTED,
+                "is_sus4": Quality.SUSPENDED_4,
+                "is_sus2": Quality.SUSPENDED_2,
+            }
+
+            chords.append(Chord(
+                key=candidate_note,
+                quality=qualities[best_quality_name],
+                extensions=chord_extensions,
+                alterations=chord_alterations,
+                omits=chord_omits,
+                inversion=bass_note if bass_note != candidate_note else None,
+                confidence=highest_score
+            ))
+
+        for chord in chords:
+            print(str(chord), chord.confidence, chord.complexity)
+        return chords
 
 
 
