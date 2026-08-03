@@ -138,35 +138,46 @@ class ChordEngine:
 
             if 7 in missing_notes:
                 if 6 in additional_notes:
-                    chord_alterations.append(Alteration.FLAT_5)
+                    chord_alterations.append(Alteration("b5"))
                 elif 8 in additional_notes:
-                    chord_alterations.append(Alteration.SHARP_5)
+                    chord_alterations.append(Alteration("#5"))
                 else:
-                    chord_omits.append(Omit.NO_5)
+                    chord_omits.append(Omit("no5"))
 
             # standard adds or extentoins
             if 8 in additional_notes:
-                chord_extensions.append(Extension.SIXTH)
+                chord_extensions.append(Extension("6"))
             if 9 in additional_notes:
-                chord_extensions.append(Extension.MAJ_SIXTH)
+                chord_extensions.append(Extension("maj6"))
+
             if 10 in additional_notes:
-                chord_extensions.append(Extension.SEVENTH)
+                chord_extensions.append(Extension("7"))
             if 11 in additional_notes:
-                chord_extensions.append(Extension.MAJ_SEVENTH)
+                chord_extensions.append(Extension("maj7"))
+
             if 14 in additional_notes:
-                chord_extensions.append(Extension.NINTH)
-            if 17 in additional_notes:
-                chord_extensions.append(Extension.ELEVENTH)
-            if 21 in additional_notes:
-                chord_extensions.append(Extension.THIRTEENTH)
-            if 13 in additional_notes:
-                chord_extensions.append(Extension.FLAT_9)
+                chord_extensions.append(Extension("9"))
             if 15 in additional_notes:
-                chord_extensions.append(Extension.SHARP_9)
+                chord_extensions.append(Extension("maj9"))
+
+            if 17 in additional_notes:
+                chord_extensions.append(Extension("11"))
             if 18 in additional_notes:
-                chord_extensions.append(Extension.SHARP_11)
+                chord_extensions.append(Extension("maj11"))
+
+            if 21 in additional_notes:
+                chord_extensions.append(Extension("13"))
+            if 22 in additional_notes:
+                chord_extensions.append(Extension("maj13"))
+
+            if 13 in additional_notes:
+                chord_extensions.append(Extension("b9"))
+            if 15 in additional_notes:
+                chord_extensions.append(Extension("#9"))
+            if 18 in additional_notes:
+                chord_extensions.append(Extension("#11"))
             if 20 in additional_notes:
-                chord_extensions.append(Extension.FLAT_13)
+                chord_extensions.append(Extension("b13"))
 
 
             # print(f"Top Quality: {best_quality_name} ({highest_score} points)")
@@ -183,18 +194,31 @@ class ChordEngine:
             # print()
 
             qualities = {
-                "is_major": Quality.MAJOR,
-                "is_minor": Quality.MINOR,
-                "is_dim": Quality.DIMINISHED,
-                "is_aug": Quality.AUGMENTED,
-                "is_sus4": Quality.SUSPENDED_4,
-                "is_sus2": Quality.SUSPENDED_2,
+                "is_major": Quality("maj"),
+                "is_minor": Quality("min"),
+                "is_dim": Quality("dim"),
+                "is_aug": Quality("aug"),
+                "is_sus4": Quality("sus4"),
+                "is_sus2": Quality("sus2"),
             }
+
+            formatted_extensions = list()
+            for extension in chord_extensions:
+                if formatted_extensions:
+                    formatted_extensions.append(
+                        Extension(
+                            extension=extension.extension,
+                            add=True,
+                            prefer_accidental=True
+                        )
+                    )
+                else:
+                    formatted_extensions.append(extension)
 
             chords.append(Chord(
                 key=candidate_note,
                 quality=qualities[best_quality_name],
-                extensions=chord_extensions,
+                extensions=formatted_extensions,
                 alterations=chord_alterations,
                 omits=chord_omits,
                 inversion=bass_note if bass_note != candidate_note else None,

@@ -1,64 +1,77 @@
 from dataclasses import dataclass, field
-from enum import Enum
-from typing import List
+from typing import List, Literal
 
 from backend.engine.utils.functions.midi import midi_to_name
 
+@dataclass
+class Quality:
+    quality: Literal["maj", "min", "aug", "dim", "sus2", "sus4"]
+    standard_name: str = field(init=False)
+    semitones: List[int] = field(init=False)
 
-class Quality(Enum):
-    # Triads
-    MAJOR = ([0, 4, 7], "")
-    MINOR = ([0, 3, 7], "min")
-    AUGMENTED = ([0, 4, 8], "aug")
-    DIMINISHED = ([0, 3, 6], "dim")
-    SUSPENDED_2 = ([0, 2, 7], "sus2")
-    SUSPENDED_4 = ([0, 5, 7], "sus4")
-
-    def __init__(self, semitones: List[int], standard_name: str):
-        self.semitones = semitones
-        self.standard_name = standard_name
-
-
-class Extension(Enum):
-    SIXTH = (8, "6")
-    MAJ_SIXTH = (9, "maj6")
-
-    SEVENTH = (10, "7")
-    MAJ_SEVENTH = (11, "maj7")
-
-    NINTH = (14, "9")
-    ELEVENTH = (17, "11")
-    THIRTEENTH = (21, "13")
-
-    FLAT_9 = (13, "b9")
-    SHARP_9 = (15, "#9")
-
-    SHARP_11 = (18, "#11")
-    FLAT_13 = (20, "b13")
-
-    def __init__(self, semitone: int, standard_name: str):
-        self.semitone = semitone
-        self.standard_name = standard_name
-
-    def with_add(self) -> tuple["Extension", bool]:
-        return self, True
-
-class Alteration(Enum):
-    FLAT_5 = (6, "b5")
-    SHARP_5 = (8, "#5")
-
-    def __init__(self, semitone: int, standard_name: str):
-        self.semitone = semitone
-        self.standard_name = standard_name
+    def __post_init__(self):
+        match self.quality:
+            case "maj":
+                self.semitones = [0, 4, 7]
+                self.standard_name = ""
+            case "min":
+                self.semitones = [0, 3, 7]
+                self.standard_name = self.quality
+            case "aug":
+                self.semitones = [0, 4, 7]
+                self.standard_name = self.quality
+            case "dim":
+                self.semitones = [0, 3, 7]
+                self.standard_name = self.quality
+            case "sus2":
+                self.semitones = [0, 4, 7]
+                self.standard_name = self.quality
+            case "sus4":
+                self.semitones = [0, 5, 7]
+                self.standard_name = self.quality
 
 
-class Omit(Enum):
-    NO_3 = "no3"
-    NO_5 = "no5"
+@dataclass
+class Extension:
+    extension: Literal["6", "maj6", "7", "maj7", "9", "maj9", "11", "maj11", "13", "maj13", "b9", "#9", "#11", "b13"]
+    add: bool = False
+    semitone: int = field(init=False)
+    prefer_accidental: bool = False
 
-    def __init__(self, standard_name: str):
-        self.standard_name = standard_name
+    def __post_init__(self):
+        match self.extension:
+            case "6": self.semitone = 8
+            case "maj6": self.semitone = 9
+            case "7": self.semitone = 10
+            case "maj7": self.semitone = 11
+            case "b9": self.semitone = 13
+            case "9": self.semitone = 14
+            case "maj9": self.semitone = 15
+            case "#9": self.semitone = 15
+            case "11": self.semitone = 17
+            case "maj11": self.semitone = 18
+            case "#11": self.semitone = 18
+            case "b13": self.semitone = 20
+            case "13": self.semitone = 21
+            case "maj13": self.semitone = 22
 
+        if self.prefer_accidental:
+            if self.extension in ["maj9", "maj11"]:
+                if self.extension == "maj9":
+                    self.extension = "#9"
+                elif self.extension == "maj11":
+                    self.extension = "#11"
+
+@dataclass
+class Alteration:
+    alteration: Literal["b5", "#5"]
+
+    def __post_init__(self):
+        pass
+
+@dataclass
+class Omit:
+    omit: Literal["no3", "no5"]
 
 
 @dataclass
@@ -79,20 +92,7 @@ class Chord:
     confidence: float = 0.0
 
     def __str__(self):
-        final_name = ""
-
-        final_name += midi_to_name(self.key)[0][:1] #TODO add proper accidental shit
-        final_name += self.quality.standard_name
-        for ext in self.extensions:
-            final_name += ext.standard_name
-        for alt in self.alterations: #TODO add exceptions liek C7Sus4
-            final_name += alt.standard_name
-        for omt in self.omits:
-            final_name += omt.standard_name
-        if self.inversion:
-            final_name += "/" + midi_to_name(self.inversion)[0][:1]
-
-        return final_name
+        return self.chord_name
 
     def __post_init__(self):
         cplx = 0.0
@@ -103,4 +103,25 @@ class Chord:
         cplx += 0.5 if self.inversion else 0
 
         self.complexity = cplx
+
+    @property
+    def chord_name(self) -> str:
+        final_name = ""
+
+        final_name += midi_to_name(self.key)[0][:1]  # TODO add proper accidental shit
+        final_name += self.quality.standard_name
+        for ext in self.extensions:
+            if ext.add:
+                final_name += "add" + ext.extension
+            else:
+                final_name += ext.extension
+        for alt in self.alterations: #TODO add exceptions liek C7Sus4
+            final_name += alt.alteration
+        for omt in self.omits:
+            final_name += omt.omit
+
+        if self.inversion:
+            final_name += "/" + midi_to_name(self.inversion)[0][:1]
+
+        return final_name
 
