@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from typing import List, Literal
 
@@ -8,6 +10,7 @@ class Quality:
     quality: Literal["maj", "min", "aug", "dim", "sus2", "sus4"]
     standard_name: str = field(init=False)
     semitones: List[int] = field(init=False)
+    is_suspension: bool = field(init=False)
 
     def __post_init__(self):
         match self.quality:
@@ -30,6 +33,27 @@ class Quality:
                 self.semitones = [0, 5, 7]
                 self.standard_name = self.quality
 
+        if self.standard_name in ["sus2", "sus4"]:
+            self.is_suspension = True
+        else:
+            self.is_suspension = False
+
+EXTENSION_SEMITONE_MAPPING = {
+    "6": 8,
+    "maj6": 9,
+    "7": 10,
+    "maj7": 11,
+    "b9": 13,
+    "9": 14,
+    "maj9": 15,
+    "#9": 15,
+    "11": 17,
+    "maj11": 18,
+    "#11": 18,
+    "b13": 20,
+    "13": 21,
+    "maj13": 22,
+}
 
 @dataclass
 class Extension:
@@ -37,23 +61,9 @@ class Extension:
     add: bool = False
     semitone: int = field(init=False)
     prefer_accidental: bool = False
-
+    hidden: bool = False
     def __post_init__(self):
-        match self.extension:
-            case "6": self.semitone = 8
-            case "maj6": self.semitone = 9
-            case "7": self.semitone = 10
-            case "maj7": self.semitone = 11
-            case "b9": self.semitone = 13
-            case "9": self.semitone = 14
-            case "maj9": self.semitone = 15
-            case "#9": self.semitone = 15
-            case "11": self.semitone = 17
-            case "maj11": self.semitone = 18
-            case "#11": self.semitone = 18
-            case "b13": self.semitone = 20
-            case "13": self.semitone = 21
-            case "maj13": self.semitone = 22
+        self.semitone = EXTENSION_SEMITONE_MAPPING[self.extension]
 
         if self.prefer_accidental:
             if self.extension in ["maj9", "maj11"]:
@@ -61,6 +71,66 @@ class Extension:
                     self.extension = "#9"
                 elif self.extension == "maj11":
                     self.extension = "#11"
+
+    def __str__(self):
+        return f"{"HIDDEN | " if self.hidden else ""}{"add" if self.add else ""}{self.extension}"
+
+    def __eq__(self, other: int | str | Extension):
+        if isinstance(other, int):
+            if self.semitone == other:
+                return True
+        elif isinstance(other, str):
+            if self.extension == other:
+                return True
+        elif isinstance(other, Extension):
+            if self.extension == other.extension:
+                return True
+
+        return NotImplemented
+
+    def __gt__(self, other):
+        compare_value = None
+        if isinstance(other, int):
+            compare_value = other
+        elif isinstance(other, str):
+            compare_value = EXTENSION_SEMITONE_MAPPING[other]
+        elif isinstance(other, Extension):
+            compare_value = other.semitone
+
+        return self.semitone > compare_value
+
+    def __lt__(self, other):
+        compare_value = None
+        if isinstance(other, int):
+            compare_value = other
+        elif isinstance(other, str):
+            compare_value = EXTENSION_SEMITONE_MAPPING[other]
+        elif isinstance(other, Extension):
+            compare_value = other.semitone
+
+        return self.semitone < compare_value
+
+    def __le__(self, other):
+        compare_value = None
+        if isinstance(other, int):
+            compare_value = other
+        elif isinstance(other, str):
+            compare_value = EXTENSION_SEMITONE_MAPPING[other]
+        elif isinstance(other, Extension):
+            compare_value = other.semitone
+
+        return self.semitone <= compare_value
+
+    def __ge__(self, other):
+        compare_value = None
+        if isinstance(other, int):
+            compare_value = other
+        elif isinstance(other, str):
+            compare_value = EXTENSION_SEMITONE_MAPPING[other]
+        elif isinstance(other, Extension):
+            compare_value = other.semitone
+
+        return self.semitone >= compare_value
 
 @dataclass
 class Alteration:
@@ -108,7 +178,7 @@ class Chord:
     def chord_name(self) -> str:
         final_name = ""
 
-        final_name += midi_to_name(self.key)[0][:1]  # TODO add proper accidental shit
+        final_name += midi_to_name(self.key)[0][:-1]  # TODO add proper accidental shit
         final_name += self.quality.standard_name
         for ext in self.extensions:
             if ext.add:

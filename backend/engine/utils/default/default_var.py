@@ -46,96 +46,79 @@ MUSICAL_INTERVALS = {
 # TEST AREA
 
 EXPANDED_MIDI_CHORDS = {
-    # --- BASIC TRIADS & INVERSIONS ---
-    "C_Major": [60, 64, 67],  # Root: C4, E4, G4
-    "C_Major_1st_Inv": [64, 67, 72],  # 1st Inv (C/E): E4, G4, C5
-    "C_Major_2nd_Inv": [67, 72, 76],  # 2nd Inv (C/G): G4, C5, E5
-    "C_Minor": [60, 63, 67],  # Root: C4, Eb4, G4
-    "C_Minor_1st_Inv": [63, 67, 72],  # 1st Inv (Cm/Eb): Eb4, G4, C5
-    "C_Minor_2nd_Inv": [67, 72, 75],  # 2nd Inv (Cm/G): G4, C5, Eb5
-    "C_Diminished": [60, 63, 66],  # Root: C4, Eb4, Gb4
-    "C_Diminished_1st_Inv": [63, 66, 72],  # 1st Inv (Cdim/Eb): Eb4, Gb4, C5
-    "C_Diminished_2nd_Inv": [66, 72, 75],  # 2nd Inv (Cdim/Gb): Gb4, C5, Eb5
-    "C_Augmented": [60, 64, 68],  # Root: C4, E4, G#4
-    "C_Augmented_1st_Inv": [64, 68, 72],  # 1st Inv (C+/E): E4, G#4, C5
-    "C_Augmented_2nd_Inv": [68, 72, 76],  # 2nd Inv (C+/G#): G#4, C5, E5
-    "C_Flat_5": [60, 64, 66],  # Root: C4, E4, Gb4 (C(b5))
-    "C_Flat_5_1st_Inv": [64, 66, 72],  # 1st Inv: E4, Gb4, C5
-    "C_Flat_5_2nd_Inv": [66, 72, 76],  # 2nd Inv: Gb4, C5, E5
-    # --- SUSPENDED CHORDS ---
-    "C_Sus2": [60, 62, 67],  # Root: C4, D4, G4
-    "C_Sus2_1st_Inv": [62, 67, 72],  # 1st Inv (Csus2/D): D4, G4, C5
-    "C_Sus2_2nd_Inv": [67, 72, 74],  # 2nd Inv (Csus2/G): G4, C5, D5
-    "C_Sus4": [60, 65, 67],  # Root: C4, F4, G4
-    "C_Sus4_1st_Inv": [65, 67, 72],  # 1st Inv (Csus4/F): F4, G4, C5
-    "C_Sus4_2nd_Inv": [67, 72, 77],  # 2nd Inv (Csus4/G): G4, C5, F5
-    "C_Sus2_Add13": [60, 62, 67, 81],  # Csus2(add13): C4, D4, G4, A5
-    "C_Sus4_Add13": [60, 65, 67, 81],  # Csus4(add13): C4, F4, G4, A5
-    # --- 7TH CHORDS & INVERSIONS ---
-    "C_Dominant_7": [60, 64, 67, 70],  # Root: C4, E4, G4, Bb4
-    "C_Dominant_7_1st_Inv": [64, 67, 70, 72],  # 1st Inv (C7/E): E4, G4, Bb4, C5
-    "C_Dominant_7_2nd_Inv": [67, 70, 72, 76],  # 2nd Inv (C7/G): G4, Bb4, C5, E5
-    "C_Dominant_7_3rd_Inv": [70, 72, 76, 79],  # 3rd Inv (C7/Bb): Bb4, C5, E5, G5
-    "C_Major_7": [60, 64, 67, 71],  # Root: C4, E4, G4, B4
-    "C_Major_7_1st_Inv": [64, 67, 71, 72],  # 1st Inv (Cmaj7/E): E4, G4, B4, C5
-    "C_Major_7_2nd_Inv": [67, 71, 72, 76],  # 2nd Inv (Cmaj7/G): G4, B4, C5, E5
-    "C_Major_7_3rd_Inv": [71, 72, 76, 79],  # 3rd Inv (Cmaj7/B): B4, C5, E5, G5
-    "C_Minor_7": [60, 63, 67, 70],  # Root: C4, Eb4, G4, Bb4
-    "C_Minor_7_1st_Inv": [63, 67, 70, 72],  # 1st Inv (Cm7/Eb): Eb4, G4, Bb4, C5
-    "C_Minor_7_2nd_Inv": [67, 70, 72, 75],  # 2nd Inv (Cm7/G): G4, Bb4, C5, Eb5
-    "C_Minor_7_3rd_Inv": [70, 72, 75, 79],  # 3rd Inv (Cm7/Bb): Bb4, C5, Eb5, G5
-    "C_Half_Diminished_7": [60, 63, 66, 70],  # Root: C4, Eb4, Gb4, Bb4 (Cø7)
-    "C_Half_Diminished_7_1st_Inv": [63, 66, 70, 72],  # 1st Inv (Cø7/Eb)
-    "C_Half_Diminished_7_2nd_Inv": [66, 70, 72, 75],  # 2nd Inv (Cø7/Gb)
-    "C_Half_Diminished_7_3rd_Inv": [70, 72, 75, 78],  # 3rd Inv (Cø7/Bb)
-    "C_Diminished_7": [60, 63, 66, 69],  # Root: C4, Eb4, Gb4, Bbb4 (MIDI 69 = A4 enharmonic)
-    "C_Diminished_7_1st_Inv": [63, 66, 69, 72],  # 1st Inv (C°7/Eb)
-    "C_Diminished_7_2nd_Inv": [66, 69, 72, 75],  # 2nd Inv (C°7/Gb)
-    "C_Diminished_7_3rd_Inv": [69, 72, 75, 78],  # 3rd Inv (C°7/Bbb)
-    "C_Minor_Major_7": [60, 63, 67, 71],  # Root: C4, Eb4, G4, B4
-    "C_Minor_Major_7_1st_Inv": [63, 67, 71, 72],  # 1st Inv (Cm(maj7)/Eb)
-    "C_Minor_Major_7_2nd_Inv": [67, 71, 72, 75],  # 2nd Inv (Cm(maj7)/G)
-    "C_Minor_Major_7_3rd_Inv": [71, 72, 75, 79],  # 3rd Inv (Cm(maj7)/B)
-    "C_7_Sus4": [60, 65, 67, 70],  # Root: C4, F4, G4, Bb4
-    "C_7_Sus4_1st_Inv": [65, 67, 70, 72],  # 1st Inv (C7sus4/F)
-    "C_7_Sus4_2nd_Inv": [67, 70, 72, 77],  # 2nd Inv (C7sus4/G)
-    "C_7_Sus4_3rd_Inv": [70, 72, 77, 79],  # 3rd Inv (C7sus4/Bb)
-    "C_9_Sus4": [60, 65, 67, 70, 74],  # Root: C4, F4, G4, Bb4, D5
-    "C_13_Sus4": [60, 65, 67, 70, 74, 81],  # Root: C4, F4, G4, Bb4, D5, A5
-    "C_7_Sus4_Flat_9": [60, 65, 67, 70, 73],  # Root: C4, F4, G4, Bb4, Db5
-    # --- 6THS, ADD CHORDS & VOICINGS (Formerly "Extended Inversions") ---
-    "C_Major_6": [60, 64, 67, 69],  # Root: C4, E4, G4, A4
-    "C_Major_6_1st_Inv": [64, 67, 69, 72],  # 1st Inv (C6/E): E4, G4, A4, C5
-    "C_Major_6_2nd_Inv": [67, 69, 72, 76],  # 2nd Inv (C6/G): G4, A4, C5, E5
-    "C_Major_6_3rd_Inv": [69, 72, 76, 79],  # 3rd Inv (C6/A): A4, C5, E5, G5 (Am7)
-    "C_Minor_6": [60, 63, 67, 69],  # Root: C4, Eb4, G4, A4
-    "C_Minor_6_1st_Inv": [63, 67, 69, 72],  # 1st Inv (Cm6/Eb): Eb4, G4, A4, C5
-    "C_Minor_6_2nd_Inv": [67, 69, 72, 75],  # 2nd Inv (Cm6/G): G4, A4, C5, Eb5
-    "C_Minor_6_3rd_Inv": [69, 72, 75, 79],  # 3rd Inv (Cm6/A): A4, C5, Eb5, G5 (Am7b5)
-    "C_69": [60, 64, 67, 69, 74],  # Root: C4, E4, G4, A4, D5
-    "C_Add9": [60, 64, 67, 74],  # Root: C4, E4, G4, D5
-    "C_Add9_slash_E": [
-        64,
-        67,
-        74,
-        72,
-    ],  # Voicing: E4, G4, D5, C5 (Reclassified from 1st Inv)
-    "C_Add9_slash_G": [
-        67,
-        74,
-        72,
-        76,
-    ],  # Voicing: G4, D5, C5, E5 (Reclassified from 2nd Inv)
-    "C_Add11": [60, 64, 67, 77],  # Root: C4, E4, G4, F5
-    "C_Add13": [60, 64, 67, 81],  # Root: C4, E4, G4, A5
-    "C_Minor_Add9": [60, 63, 67, 74],  # Root: C4, Eb4, G4, D5
-    "C_Add9_Add11": [60, 64, 67, 74, 77],  # Root: C4, E4, G4, D5, F5
-    "C7_Flat9_Add9": [
-        60,
-        64,
-        67,
-        73,
-        74,
-    ],  # Reclassified from C_Add_Flat9_Add9 (Adds dominant tension context)
-    "C_7_Add9_Add13": [60, 64, 67, 70, 74, 81],  # Root: C4, E4, G4, Bb4, D5, A5
+    # --- 1. BASIC TRIADS & SUSPENSIONS ---
+    "C_Major": [60, 64, 67],  # 1-3-5
+    "C_Major_1st_Inv": [64, 67, 72],  # C/E (Root C moved up an octave)
+    "C_Minor": [60, 63, 67],  # 1-b3-5
+    "C_Diminished": [60, 63, 66],  # 1-b3-b5
+    "C_Augmented": [60, 64, 68],  # 1-3-#5
+    "C_Flat_5": [60, 64, 66],  # 1-3-b5 (C(b5))
+    "C_Sus2": [60, 62, 67],  # 1-2-5
+    "C_Sus4": [60, 65, 67],  # 1-4-5
+    "C_Power_Chord": [60, 67],  # 1-5 (C5)
+
+    # --- 2. CORE 7TH CHORDS ---
+    "C_Dominant_7": [60, 64, 67, 70],  # C7: 1-3-5-b7
+    "C_Dominant_7_3rd_Inv": [70, 72, 76, 79],  # C7/Bb (7th in bass, root/3rd/5th moved up an octave)
+    "C_Major_7": [60, 64, 67, 71],  # Cmaj7: 1-3-5-7
+    "C_Minor_7": [60, 63, 67, 70],  # Cm7: 1-b3-5-b7
+    "C_Half_Diminished_7": [60, 63, 66, 70],  # Cm7b5 (Cø7): 1-b3-b5-b7
+    "C_Diminished_7": [60, 63, 66, 69],  # Cdim7: 1-b3-b5-bb7
+    "C_Minor_Major_7": [60, 63, 67, 71],  # Cm(maj7): 1-b3-5-7
+    "C_Augmented_Major_7": [60, 64, 68, 71],  # Caug(maj7): 1-3-#5-7
+    "C_Augmented_7": [60, 64, 68, 70],  # C7#5: 1-3-#5-b7
+
+    # --- 3. SUSPENDED EXTENSIONS (No 3rd) ---
+    "C_7_Sus4": [60, 65, 67, 70],  # C7sus4
+    "C_9_Sus4": [60, 65, 67, 70, 74],  # C9sus4 (1-4-5-b7-9)
+    "C_13_Sus4": [60, 65, 67, 70, 74, 81],  # C13sus4 (1-4-5-b7-9-13)
+    "C_7_Sus4_Flat_9": [60, 65, 67, 70, 73],  # C7sus4(b9)
+
+    # --- 4. 6TH CHORDS & EXTENSIONS (No 7th) ---
+    "C_Major_6": [60, 64, 67, 69],  # C6 (1-3-5-6)
+    "C_Minor_6": [60, 63, 67, 69],  # Cm6 (1-b3-5-6)
+    "C_69": [60, 64, 67, 69, 74],  # C6/9 (1-3-5-6-9)
+    "C_Minor_69": [60, 63, 67, 69, 74],  # Cm6/9
+    "C_6_Add11": [60, 64, 67, 69, 77],  # C6add11 (6th + 11th, NO 7th)
+
+    # --- 5. ADD CHORDS (Extensions WITHOUT a 7th) ---
+    "C_Add9": [60, 64, 67, 74],  # Cadd9 (1-3-5-9)
+    "C_Minor_Add9": [60, 63, 67, 74],  # Cmadd9
+    "C_Add11": [60, 64, 67, 77],  # Cadd11 (1-3-5-11)
+    "C_Add13": [60, 64, 67, 81],  # Cadd13 (1-3-5-13)
+    "C_Add9_Add11": [60, 64, 67, 74, 77],  # Cadd9add11
+
+    # --- 6. EXTENDED CONTIGUOUS CHORDS ---
+    "C_Dominant_9": [60, 64, 67, 70, 74],  # C9 (1-3-5-b7-9)
+    "C_Major_9": [60, 64, 67, 71, 74],  # Cmaj9 (1-3-5-7-9)
+    "C_Minor_9": [60, 63, 67, 70, 74],  # Cm9 (1-b3-5-b7-9)
+    "C_Dominant_11": [60, 64, 67, 70, 74, 77],  # C11
+    "C_Minor_11": [60, 63, 67, 70, 74, 77],  # Cm11 (1-b3-5-b7-9-11)
+    "C_Dominant_13": [60, 64, 67, 70, 74, 77, 81],  # C13 (Full stack)
+    "C_Major_13": [60, 64, 67, 71, 74, 81],  # Cmaj13 (Omits 11th)
+
+    # --- 7. OMISSIONS & SPARSITY EXCEPTIONS (Jazz Shells) ---
+    "C_Dominant_13_Shell": [60, 64, 70, 81],  # C13 Shell (1-3-b7-13)
+    "C_Major_13_Shell": [60, 64, 71, 81],  # Cmaj13 Shell (1-3-7-13)
+    "C7_No5": [60, 64, 70],  # C7(no5)
+    "C9_No5": [60, 64, 70, 74],  # C9(no5)
+    "C13_No11": [60, 64, 67, 70, 74, 81],  # C13(no11) - Correct name for 1-3-5-b7-9-13
+    "C13_No9_No11": [60, 64, 67, 70, 81],  # C13(no9,no11) - Correct name for 1-3-5-b7-13
+
+    # --- 8. ALTERED EXTENSIONS & ALTERED CHORDS ---
+    "C7_Flat9": [60, 64, 67, 70, 73],  # C7(b9)
+    "C7_Sharp9": [60, 64, 67, 70, 75],  # C7(#9)
+    "C7_Sharp11": [60, 64, 67, 70, 78],  # C7(#11)
+    "C7_Flat13": [60, 64, 67, 70, 80],  # C7(b13)
+    "C7_Alt_Complete": [60, 64, 70, 73, 80],  # C7alt (1-3-b7-b9-b13)
+    "C7_Flat9_Sharp9": [60, 64, 67, 70, 73, 75],  # C7(b9,#9)
+    "C7_Sharp9_Sharp11": [60, 64, 67, 70, 75, 78],  # C7(#9,#11)
+    "C7_Flat9_Flat13": [60, 64, 67, 70, 73, 80],  # C7(b9,b13)
+    "C_Major7_Sharp11": [60, 64, 67, 71, 78],  # Cmaj7(#11)
+
+    # --- 9. SLASH CHORDS & HYBRID BASS NOTES ---
+    "C_Major_slash_G": [55, 60, 64, 67],  # C/G (Root C triad over Low G bass [G2])
+    "F_slash_C": [60, 65, 69, 72],  # F/C (F triad in 2nd inv with C in bass)
+    "Fmaj7_slash_G": [55, 65, 69, 72, 76],  # Fmaj7/G (G bass note + Fmaj7)
+    "Db_slash_C": [60, 61, 65, 68],  # Db/C (C bass note + Db major triad)
 }
