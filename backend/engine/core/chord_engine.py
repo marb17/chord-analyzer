@@ -1,3 +1,5 @@
+from dataclasses import replace
+
 from backend.engine.utils.classes.dataclass import Chord, Omit, Alteration, Extension, Quality
 from backend.engine.utils.default.default_var import MUSICAL_INTERVALS
 from backend.engine.utils.functions.midi import midi_to_name
@@ -8,6 +10,11 @@ class ChordEngine:
         pass
 
     def notes_to_chord(self, notes: list[int]) -> list[Chord]:
+        if len(notes) == 0:
+            return []
+        elif len(notes) == 1:
+            return []
+
         no_dup_notes = sorted(list(set(notes)))
 
         chords = list()
@@ -27,16 +34,21 @@ class ChordEngine:
                 all_semitone_relative = sorted([note - base_note for note in cleaned_list])
                 pitch_classes = sorted([note % 12 for note in all_semitone_relative])
 
-                print(pitch_classes)
-                print(midi_to_name(candidate_note))
-
-                all_intervals = list()
-                for note, abs_note in zip(all_semitone_relative, pitch_classes):
-                    if note >= 0:
-                        all_intervals.append(MUSICAL_INTERVALS[note])
-                    else:
-                        all_intervals.append(MUSICAL_INTERVALS[abs_note])
-
+                if len(no_dup_notes) == 2:
+                    if 0 in pitch_classes and 7 in pitch_classes:
+                        return [Chord(
+                            key=candidate_note,
+                            quality=Quality(
+                                "5"
+                            )
+                        )]
+                    elif 0 in pitch_classes and 12 in all_semitone_relative:
+                        return [Chord(
+                            key=candidate_note,
+                            quality=Quality(
+                                "octave"
+                            )
+                        )]
 
                 # --- THIRD / SUS DETECTION ---
                 has_sus2 = 2 in pitch_classes
@@ -157,18 +169,16 @@ class ChordEngine:
                         chord_omits.append(Omit("no5"))
 
                 # standard adds or extentoins
-                if 22 in additional_notes:
-                    chord_extensions.append(Extension("maj13"))
                 if 21 in additional_notes:
                     chord_extensions.append(Extension("13"))
                 if 20 in additional_notes:
                     chord_extensions.append(Extension("b13"))
                 if 18 in additional_notes:
-                    chord_extensions.append(Extension("maj11"))
+                    chord_extensions.append(Extension("#11"))
                 if 17 in additional_notes:
                     chord_extensions.append(Extension("11"))
                 if 15 in additional_notes:
-                    chord_extensions.append(Extension("maj9"))
+                    chord_extensions.append(Extension("#9"))
                 if 14 in additional_notes:
                     chord_extensions.append(Extension("9"))
                 if 13 in additional_notes:
@@ -178,8 +188,6 @@ class ChordEngine:
                 if 10 in additional_notes:
                     chord_extensions.append(Extension("7"))
                 if 9 in additional_notes:
-                    chord_extensions.append(Extension("maj6"))
-                if 8 in additional_notes:
                     chord_extensions.append(Extension("6"))
 
                 qualities = {
@@ -195,52 +203,77 @@ class ChordEngine:
                 chord_extensions = sorted(chord_extensions, key = lambda e: e.semitone)
 
                 seventh_present = any(ext.extension in ("7", "maj7") for ext in chord_extensions)
-                print(seventh_present)
-                print([str(ext) for ext in chord_extensions])
+
+                if seventh_present:
+                    seventh_major = any(ext.extension == "maj7" for ext in chord_extensions)
+                else: seventh_major = False
+
+                sixth_present = any(ext.extension in ("6") for ext in chord_extensions)
 
                 for extension in chord_extensions:
                     if extension.extension in ("6", "maj6"):
                         formatted_extensions.append(extension)
                     elif extension.extension in ("7", "maj7"):
                         formatted_extensions.append(extension)
+                    # special cases
+                    elif extension.extension == "9" and sixth_present:
+                        formatted_extensions.append(extension)
+
                     else:
                         if seventh_present:
                             formatted_extensions.append(Extension(
                                 extension.extension,
-                                prefer_accidental=True,
+                                major_seventh_present=seventh_major,
                                 add=False
                             ))
                         else:
                             formatted_extensions.append(Extension(
                                 extension.extension,
-                                prefer_accidental=True,
+                                major_seventh_present=seventh_major,
                                 add=True
                             ))
 
                     # TODO continue
 
-                print([str(ext) for ext in formatted_extensions])
-                print()
+                try:
+                    max_semitone_standard = max([ext.semitone for ext in formatted_extensions if ext.non_standard_extension == False])
+                    second_formatted_extensions = list()
+
+                    for extension in formatted_extensions:
+                        if extension.semitone == max_semitone_standard:
+                            second_formatted_extensions.append(extension)
+                            continue
+
+                        if extension.add:
+                            second_formatted_extensions.append(extension)
+                            continue
+
+
+                        if extension.semitone in (10, 11, 14, 15, 17, 18, 21) and not extension.non_standard_extension:
+                            second_formatted_extensions.append(replace(extension, hidden=True))
+                        else:
+                            second_formatted_extensions.append(extension)
+
+                except ValueError:
+                    second_formatted_extensions = formatted_extensions
 
                 chords.append(Chord(
                     key=candidate_note,
                     quality=qualities[best_quality_name],
-                    extensions=formatted_extensions,
+                    extensions=second_formatted_extensions,
                     alterations=chord_alterations,
                     omits=chord_omits,
                     inversion=bass_note if bass_note != candidate_note else None,
                     confidence=highest_score
                 ))
 
-        for chord in chords:
-            print(str(chord), chord.confidence, chord.complexity)
-        return chords
+        return sorted(list(set(chords)), key = lambda chrd: chrd.confidence, reverse=True)
 
 
 
 
 
-            
+
 
 
 
@@ -256,5 +289,6 @@ if __name__ == "__main__":
 
     for key, value in EXPANDED_MIDI_CHORDS.items():
         print(key)
-        engine.notes_to_chord(value)
-        print("---------------------------------------------------")
+        for chord in engine.notes_to_chord(value):
+            print(str(chord))
+        print()

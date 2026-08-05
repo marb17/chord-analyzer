@@ -121,4 +121,5 @@ EXPANDED_MIDI_CHORDS = {
     "F_slash_C": [60, 65, 69, 72],  # F/C (F triad in 2nd inv with C in bass)
     "Fmaj7_slash_G": [55, 65, 69, 72, 76],  # Fmaj7/G (G bass note + Fmaj7)
     "Db_slash_C": [60, 61, 65, 68],  # Db/C (C bass note + Db major triad)
+    "C_Octave": [60, 72],
 }
