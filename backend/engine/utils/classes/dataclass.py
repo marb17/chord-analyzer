@@ -197,6 +197,9 @@ class Chord:
     def __str__(self):
         return self.chord_name
 
+    def __repr__(self):
+        return f"Chord({self.__class__} {self.chord_name})"
+
     def __hash__(self):
         return hash(self.chord_name)
 
