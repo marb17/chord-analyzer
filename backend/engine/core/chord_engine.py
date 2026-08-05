@@ -1,7 +1,7 @@
 from dataclasses import replace
 
 from backend.engine.utils.classes.dataclass import Chord, Omit, Alteration, Extension, Quality
-from backend.engine.utils.default.default_var import MUSICAL_INTERVALS
+from backend.engine.utils.default.default_var import MUSICAL_INTERVALS, MASSIVE_EXPANDED_MIDI_CHORDS
 from backend.engine.utils.functions.midi import midi_to_name
 
 
@@ -26,29 +26,42 @@ class ChordEngine:
 
                 cleaned_list = no_dup_notes.copy()
 
-                if bass_note != candidate_note and i == 1:
+                if bass_note % 12 != candidate_note % 12 and i == 1:
                     cleaned_list.remove(bass_note)
-                if bass_note == candidate_note and i == 1:
+                if bass_note % 12 == candidate_note % 12 and i == 1:
                     continue
 
                 all_semitone_relative = sorted([note - base_note for note in cleaned_list])
                 pitch_classes = sorted([note % 12 for note in all_semitone_relative])
 
-                if len(no_dup_notes) == 2:
+                if len(pitch_classes) == 2 and i != 1:
                     if 0 in pitch_classes and 7 in pitch_classes:
-                        return [Chord(
+                        chords.append(Chord(
                             key=candidate_note,
                             quality=Quality(
                                 "5"
-                            )
-                        )]
+                            ),
+                            raw_notes=notes
+                        ))
                     elif 0 in pitch_classes and 12 in all_semitone_relative:
-                        return [Chord(
+                        chords.append(Chord(
                             key=candidate_note,
                             quality=Quality(
                                 "octave"
-                            )
-                        )]
+                            ),
+                            raw_notes=notes
+                        ))
+                if len(pitch_classes) == 4 and i != 1:
+                    if pitch_classes == [0, 3, 6, 10]:
+                        chords.append(Chord(
+                            key=candidate_note,
+                            quality=Quality("min"),
+                            extensions=[Extension("7")],
+                            alterations=[Alteration("b5"),],
+                            confidence=7.0,
+                            raw_notes=notes
+                        ))
+
 
                 # --- THIRD / SUS DETECTION ---
                 has_sus2 = 2 in pitch_classes
@@ -167,28 +180,45 @@ class ChordEngine:
                         chord_alterations.append(Alteration("#5"))
                     else:
                         chord_omits.append(Omit("no5"))
+                if 3 in missing_notes or 4 in missing_notes:
+                    chord_alterations.append(Omit("no3"))
 
                 # standard adds or extentoins
-                if 21 in additional_notes:
-                    chord_extensions.append(Extension("13"))
-                if 20 in additional_notes:
-                    chord_extensions.append(Extension("b13"))
-                if 18 in additional_notes:
-                    chord_extensions.append(Extension("#11"))
-                if 17 in additional_notes:
-                    chord_extensions.append(Extension("11"))
-                if 15 in additional_notes:
-                    chord_extensions.append(Extension("#9"))
-                if 14 in additional_notes:
-                    chord_extensions.append(Extension("9"))
-                if 13 in additional_notes:
-                    chord_extensions.append(Extension("b9"))
-                if 11 in additional_notes:
-                    chord_extensions.append(Extension("maj7"))
-                if 10 in additional_notes:
-                    chord_extensions.append(Extension("7"))
-                if 9 in additional_notes:
-                    chord_extensions.append(Extension("6"))
+                skip_try = False
+                for add_note in additional_notes:
+                    if add_note == 21:
+                        chord_extensions.append(Extension("13"))
+                    elif add_note == 20:
+                        chord_extensions.append(Extension("b13"))
+                    elif add_note == 18:
+                        chord_extensions.append(Extension("#11"))
+                    elif add_note == 17:
+                        chord_extensions.append(Extension("11"))
+                    elif add_note == 15:
+                        chord_extensions.append(Extension("#9"))
+                    elif add_note == 14:
+                        chord_extensions.append(Extension("9"))
+                    elif add_note == 13:
+                        chord_extensions.append(Extension("b9"))
+                    elif add_note == 11:
+                        chord_extensions.append(Extension("maj7"))
+                    elif add_note == 10:
+                        chord_extensions.append(Extension("7"))
+                    elif add_note == 9:
+                        if best_quality_name == "is_dim":
+                            chord_extensions.append(Extension("7"))
+                        else:
+                            chord_extensions.append(Extension("6"))
+                    # safety passes
+                    elif add_note in (6, ):
+                        pass
+
+                    else:
+                        skip_try = True
+                        break
+
+                if skip_try:
+                    continue
 
                 qualities = {
                     "is_major": Quality("maj"),
@@ -203,37 +233,29 @@ class ChordEngine:
                 chord_extensions = sorted(chord_extensions, key = lambda e: e.semitone)
 
                 seventh_present = any(ext.extension in ("7", "maj7") for ext in chord_extensions)
+                seventh_major = any(ext.extension == "maj7" for ext in chord_extensions)
+                sixth_present = any(ext.extension == "6" for ext in chord_extensions)
 
-                if seventh_present:
-                    seventh_major = any(ext.extension == "maj7" for ext in chord_extensions)
-                else: seventh_major = False
-
-                sixth_present = any(ext.extension in ("6") for ext in chord_extensions)
+                try:
+                    max_semitone_standard = max([ext.semitone for ext in chord_extensions if ext.non_standard_extension == False])
+                except ValueError:
+                    max_semitone_standard = 0
 
                 for extension in chord_extensions:
                     if extension.extension in ("6", "maj6"):
                         formatted_extensions.append(extension)
                     elif extension.extension in ("7", "maj7"):
-                        formatted_extensions.append(extension)
+                        formatted_extensions.append(replace(extension, hidden=extension.semitone < max_semitone_standard))
                     # special cases
                     elif extension.extension == "9" and sixth_present:
                         formatted_extensions.append(extension)
 
                     else:
-                        if seventh_present:
-                            formatted_extensions.append(Extension(
-                                extension.extension,
-                                major_seventh_present=seventh_major,
-                                add=False
-                            ))
-                        else:
-                            formatted_extensions.append(Extension(
-                                extension.extension,
-                                major_seventh_present=seventh_major,
-                                add=True
-                            ))
-
-                    # TODO continue
+                        formatted_extensions.append(Extension(
+                            extension.extension,
+                            major_seventh_present=seventh_major,
+                            add=not seventh_present or extension.non_standard_extension
+                        ))
 
                 try:
                     max_semitone_standard = max([ext.semitone for ext in formatted_extensions if ext.non_standard_extension == False])
@@ -248,8 +270,7 @@ class ChordEngine:
                             second_formatted_extensions.append(extension)
                             continue
 
-
-                        if extension.semitone in (10, 11, 14, 15, 17, 18, 21) and not extension.non_standard_extension:
+                        if extension.semitone in (11, 14, 15, 17, 18, 21) and not extension.non_standard_extension:
                             second_formatted_extensions.append(replace(extension, hidden=True))
                         else:
                             second_formatted_extensions.append(extension)
@@ -257,28 +278,20 @@ class ChordEngine:
                 except ValueError:
                     second_formatted_extensions = formatted_extensions
 
+                second_formatted_extensions = sorted(second_formatted_extensions, key=lambda e: e.priority_order, reverse=False)
+
                 chords.append(Chord(
                     key=candidate_note,
                     quality=qualities[best_quality_name],
                     extensions=second_formatted_extensions,
                     alterations=chord_alterations,
                     omits=chord_omits,
-                    inversion=bass_note if bass_note != candidate_note else None,
-                    confidence=highest_score
+                    inversion=bass_note if bass_note % 12 != candidate_note % 12 else None,
+                    confidence=highest_score,
+                    raw_notes=notes
                 ))
 
-        return sorted(list(set(chords)), key = lambda chrd: chrd.confidence, reverse=True)
-
-
-
-
-
-
-
-
-
-
-
+        return sorted(list(set(chords)), key = lambda chrd: chrd.final_score, reverse=True)
 
 
 
@@ -287,8 +300,17 @@ if __name__ == "__main__":
 
     from backend.engine.utils.default.default_var import EXPANDED_MIDI_CHORDS
 
-    for key, value in EXPANDED_MIDI_CHORDS.items():
+    for key, value in MASSIVE_EXPANDED_MIDI_CHORDS.items():
         print(key)
         for chord in engine.notes_to_chord(value):
-            print(str(chord))
+            # print(str(chord), chord.final_score, chord.confidence, chord.complexity)
+            print(chord.chord_name, chord.final_score, chord.confidence, chord.complexity)
+            # print(chord)
+            # break
         print()
+    # for key, value in {"C_Add9": [60, 64, 67, 74]}.items():
+    #     print(key)
+    #     for chord in engine.notes_to_chord(value):
+    #         print(str(chord))
+    #         print()
+    #     print()

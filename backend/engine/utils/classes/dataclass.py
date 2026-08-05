@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from math import log
 from typing import List, Literal
+
+import select
 
 from backend.engine.utils.functions.midi import midi_to_name
 
@@ -58,7 +61,7 @@ EXTENSION_SEMITONE_MAPPING = {
 
     "maj9": 14,
     "maj11": 17,
-    "maj13": 21
+    "maj13": 21,
 }
 
 @dataclass
@@ -69,10 +72,14 @@ class Extension:
     major_seventh_present: bool = False
     hidden: bool = False
     non_standard_extension: bool = field(init=False)
+    priority_order: int = field(init=False)
 
     def __post_init__(self):
         self._update_data()
         if self.major_seventh_present: self.convert_to_major_ext()
+        self.priority_order = EXTENSION_SEMITONE_MAPPING[self.extension]
+        if self.priority_order in [10, 11]:
+            self.priority_order = 0
 
 
     def _update_data(self):
@@ -90,7 +97,8 @@ class Extension:
         self._update_data()
 
     def __str__(self):
-        return f"{"HIDDEN | " if self.hidden else ""}{"add" if self.add else ""}{self.extension}"
+        return f"{self.extension}"
+        # return f"{"add" if self.add else ""}{self.extension}"
 
     def __eq__(self, other: int | str | Extension):
         if isinstance(other, int):
@@ -152,13 +160,18 @@ class Extension:
 @dataclass
 class Alteration:
     alteration: Literal["b5", "#5"]
+    hidden: bool = False
 
-    def __post_init__(self):
-        pass
+    def __str__(self):
+        return self.alteration
 
 @dataclass
 class Omit:
     omit: Literal["no3", "no5"]
+    hidden: bool = False
+
+    def __str__(self):
+        return self.omit
 
 
 @dataclass
@@ -176,8 +189,10 @@ class Chord:
     omits: List[Omit] = field(default_factory=list)
     inversion: int | None = None
     confidence: float = 0.0
+    raw_notes: list[int] = field(default_factory=list)
 
     complexity: float = field(init=False)
+    final_score: float = field(init=False)
 
     def __str__(self):
         return self.chord_name
@@ -191,43 +206,58 @@ class Chord:
         cplx += len(self.extensions) * 0.5
         cplx += len(self.alterations) * 1.2
         cplx += len(self.omits) * 1.5
-        cplx += 0.5 if self.inversion else 0
+        cplx += 2.0 if self.inversion else 0
+
+        root_note = min(self.raw_notes)
+        chord_root_note = min(self.key, self.inversion if self.inversion else self.key)
+
+        if root_note != chord_root_note:
+            cplx += 0.3
 
         self.complexity = cplx
+
+        self.final_score = round((self.confidence * 2) / (log(self.complexity + 1.8, 2)), 2)
 
     @property
     def chord_name(self) -> str:
         final_name = ""
 
+        non_hidden_extensions = [ext for ext in self.extensions.copy() if not ext.hidden]
+        is_add_present = any([ext.add for ext in non_hidden_extensions])
+        standard_extension = [ext for ext in non_hidden_extensions if not ext.non_standard_extension]
+
         final_name += midi_to_name(self.key)[0][:-1]  # TODO add proper accidental shit
         if self.quality.quality in ("sus2", "sus4"):
-            if self.extensions:
-                final_name += self.extensions[0].extension
+            if non_hidden_extensions:
+                biggest_standard = standard_extension[-1]
+                final_name += biggest_standard.extension
+                non_hidden_extensions.remove(biggest_standard)
+
+            list_of_additions = non_hidden_extensions + self.alterations + self.omits
+
             final_name += self.quality.standard_name
 
-            if len(self.extensions) >= 2:
-                for extension in self.extensions[1:]:
-                    final_name += extension.extension
+            if len(list_of_additions) != 0 or self.alterations:
+                final_name += f"({"add" if is_add_present else ""}{", ".join([str(add) for add in list_of_additions if not add.hidden])})"
 
-            for alt in self.alterations:
-                final_name += alt.alteration
-
-            for omt in self.omits:
-                final_name += omt.omit
         else:
+            list_of_additions = non_hidden_extensions + self.alterations + self.omits
+
             final_name += self.quality.standard_name
 
-            for extension in self.extensions:
-                final_name += extension.extension
+            if list_of_additions:
+                if (isinstance(list_of_additions[0], Extension) and list_of_additions[0].add or
+                        isinstance(list_of_additions[0], Alteration)):
+                    pass
+                else:
+                    final_name += str(list_of_additions[0])
+                    list_of_additions.pop(0)
 
-            for alt in self.alterations:
-                final_name += alt.alteration
-
-            for omt in self.omits:
-                final_name += omt.omit
+            if len(list_of_additions) != 0 or self.alterations:
+                final_name += f"({"add" if is_add_present and len(list_of_additions) > 1 else ""}{", ".join([str(add) for add in list_of_additions if not add.hidden])})"
 
         if self.inversion:
-            final_name += "/" + midi_to_name(self.inversion)[0][:1]
+            final_name += "/" + midi_to_name(self.inversion)[0][:-1]
 
         return final_name
 
