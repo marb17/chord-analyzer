@@ -49,6 +49,7 @@ class Quality:
 
 EXTENSION_SEMITONE_MAPPING = {
     "6": 9,
+    "dim7": 9,
     "7": 10,
     "maj7": 11,
     "b9": 13,
@@ -215,7 +216,7 @@ class Chord:
         chord_root_note = min(self.key, self.inversion if self.inversion else self.key)
 
         if root_note != chord_root_note:
-            cplx += 0.3
+            cplx += 0.6
 
         self.complexity = cplx
 
@@ -226,6 +227,7 @@ class Chord:
         final_name = ""
 
         non_hidden_extensions = [ext for ext in self.extensions.copy() if not ext.hidden]
+
         is_add_present = any([ext.add for ext in non_hidden_extensions])
         standard_extension = [ext for ext in non_hidden_extensions if not ext.non_standard_extension]
 
@@ -241,7 +243,7 @@ class Chord:
             final_name += self.quality.standard_name
 
             if len(list_of_additions) != 0 or self.alterations:
-                final_name += f"({"add" if is_add_present else ""}{", ".join([str(add) for add in list_of_additions if not add.hidden])})"
+                final_name += f"{"(" if len(list_of_additions) > 1 else ""}{"add" if is_add_present else ""}{", ".join([str(add) for add in list_of_additions if not add.hidden])}{")" if len(list_of_additions) > 1 else ""}"
 
         else:
             list_of_additions = non_hidden_extensions + self.alterations + self.omits
@@ -256,8 +258,9 @@ class Chord:
                     final_name += str(list_of_additions[0])
                     list_of_additions.pop(0)
 
-            if len(list_of_additions) != 0 or self.alterations:
-                final_name += f"({"add" if is_add_present and len(list_of_additions) > 1 else ""}{", ".join([str(add) for add in list_of_additions if not add.hidden])})"
+            # if len(list_of_additions) != 0 or self.alterations:
+            if len(list_of_additions) != 0:
+                final_name += f"{"(" if len(list_of_additions) > 1 else ""}{"add" if is_add_present and len(list_of_additions) > 1 else ""}{", ".join([str(add) for add in list_of_additions if not add.hidden])}{")" if len(list_of_additions) > 1 else ""}"
 
         if self.inversion:
             final_name += "/" + midi_to_name(self.inversion)[0][:-1]

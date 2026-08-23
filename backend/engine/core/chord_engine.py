@@ -32,7 +32,18 @@ class ChordEngine:
                     continue
 
                 all_semitone_relative = sorted([note - base_note for note in cleaned_list])
-                pitch_classes = sorted([note % 12 for note in all_semitone_relative])
+                pitch_classes = sorted(list(set([note % 12 for note in all_semitone_relative])))
+
+                if len(pitch_classes) == 1 and i != 1:
+                    if 0 in pitch_classes and 12 in all_semitone_relative:
+                        chords.append(Chord(
+                            key=candidate_note,
+                            quality=Quality(
+                                "octave"
+                            ),
+                            raw_notes=notes,
+                            confidence=7.0
+                        ))
 
                 if len(pitch_classes) == 2 and i != 1:
                     if 0 in pitch_classes and 7 in pitch_classes:
@@ -41,26 +52,20 @@ class ChordEngine:
                             quality=Quality(
                                 "5"
                             ),
-                            raw_notes=notes
+                            raw_notes=notes,
+                            confidence=7.0
                         ))
-                    elif 0 in pitch_classes and 12 in all_semitone_relative:
-                        chords.append(Chord(
-                            key=candidate_note,
-                            quality=Quality(
-                                "octave"
-                            ),
-                            raw_notes=notes
-                        ))
-                if len(pitch_classes) == 4 and i != 1:
-                    if pitch_classes == [0, 3, 6, 10]:
-                        chords.append(Chord(
-                            key=candidate_note,
-                            quality=Quality("min"),
-                            extensions=[Extension("7")],
-                            alterations=[Alteration("b5"),],
-                            confidence=7.0,
-                            raw_notes=notes
-                        ))
+
+                # if len(pitch_classes) == 4 and i != 1:
+                #     if pitch_classes == [0, 3, 6, 10]:
+                #         chords.append(Chord(
+                #             key=candidate_note,
+                #             quality=Quality("min"),
+                #             extensions=[Extension("7")],
+                #             alterations=[Alteration("b5"),],
+                #             confidence=7.0,
+                #             raw_notes=notes
+                #         ))
 
 
                 # --- THIRD / SUS DETECTION ---
@@ -203,9 +208,13 @@ class ChordEngine:
                     elif add_note == 11:
                         chord_extensions.append(Extension("maj7"))
                     elif add_note == 10:
+                        if best_quality_name == "is_dim":
+                            best_quality_name = "is_minor"
+                            chord_alterations.append(Alteration("b5"))
                         chord_extensions.append(Extension("7"))
                     elif add_note == 9:
                         if best_quality_name == "is_dim":
+                            # chord_extensions.append(Extension("dim7"))
                             chord_extensions.append(Extension("7"))
                         else:
                             chord_extensions.append(Extension("6"))
