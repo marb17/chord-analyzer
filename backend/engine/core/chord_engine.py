@@ -9,9 +9,10 @@ class ChordEngine:
     def __init__(self):
         pass
 
-    def notes_to_chord(self, notes: list[int]) -> list[Chord]:
+    @staticmethod
+    def notes_to_chord(notes: list[int]) -> list[Chord]:
         if len(notes) == 0:
-            return []
+            return [] 
         elif len(notes) == 1:
             return []
 
@@ -35,7 +36,7 @@ class ChordEngine:
                 pitch_classes = sorted(list(set([note % 12 for note in all_semitone_relative])))
 
                 if len(pitch_classes) == 1 and i != 1:
-                    if 0 in pitch_classes and 12 in all_semitone_relative:
+                    if 0 in pitch_classes and (12 in all_semitone_relative or not any([semi % 12 == 0 for semi in all_semitone_relative])):
                         chords.append(Chord(
                             key=candidate_note,
                             quality=Quality(

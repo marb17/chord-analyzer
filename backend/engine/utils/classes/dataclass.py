@@ -218,9 +218,10 @@ class Chord:
         if root_note != chord_root_note:
             cplx += 0.6
 
-        self.complexity = cplx
+        self.complexity = round(cplx, 2)
+        self.confidence = round(self.confidence, 2)
 
-        self.final_score = round((self.confidence * 2) / (log(self.complexity + 1.8, 2)), 2)
+        self.final_score = round((self.confidence * 2) / (log(self.complexity + 1.8, 3)), 2)
 
     @property
     def chord_name(self) -> str:
@@ -234,7 +235,7 @@ class Chord:
         final_name += midi_to_name(self.key)[0][:-1]  # TODO add proper accidental shit
         if self.quality.quality in ("sus2", "sus4"):
             if non_hidden_extensions:
-                biggest_standard = standard_extension[-1]
+                biggest_standard = standard_extension[-1] if standard_extension else non_hidden_extensions[-1]
                 final_name += biggest_standard.extension
                 non_hidden_extensions.remove(biggest_standard)
 
