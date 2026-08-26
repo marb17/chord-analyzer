@@ -8,44 +8,91 @@ import select
 
 from backend.engine.utils.functions.midi import midi_to_name
 
+from dataclasses import dataclass, field
+from typing import List, Literal
+
+# Type literal including standard intervals and chord qualities
+IntervalOrQuality = Literal[
+    # Single Intervals
+    "m2", "M2", "m3", "M3", "P4", "TT", "P5", "m6", "M6", "m7", "M7",
+    # Common Triad & Dyad Qualities
+    "maj", "min", "aug", "dim", "sus2", "sus4", "5", "octave"
+]
+
 @dataclass
 class Quality:
-    quality: Literal["maj", "min", "aug", "dim", "sus2", "sus4", "5", "octave"]
+    quality: IntervalOrQuality
     standard_name: str = field(init=False)
     semitones: List[int] = field(init=False)
     is_suspension: bool = field(init=False)
 
     def __post_init__(self):
         match self.quality:
+            # Single Intervals
+            # case "P1":
+            #     self.semitones = [0]
+            #     self.standard_name = "Perfect Unison"
+            case "m2":
+                self.semitones = [0, 1]
+                self.standard_name = "Minor 2nd"
+            case "M2":
+                self.semitones = [0, 2]
+                self.standard_name = "Major 2nd"
+            case "m3":
+                self.semitones = [0, 3]
+                self.standard_name = "Minor 3rd"
+            case "M3":
+                self.semitones = [0, 4]
+                self.standard_name = "Major 3rd"
+            case "P4":
+                self.semitones = [0, 5]
+                self.standard_name = "Perfect 4th"
+            case "TT":
+                self.semitones = [0, 6]
+                self.standard_name = "Tritone"
+            case "P5":
+                self.semitones = [0, 7]
+                self.standard_name = "Perfect 5th"
+            case "m6":
+                self.semitones = [0, 8]
+                self.standard_name = "Minor 6th"
+            case "M6":
+                self.semitones = [0, 9]
+                self.standard_name = "Major 6th"
+            case "m7":
+                self.semitones = [0, 10]
+                self.standard_name = "Minor 7th"
+            case "M7":
+                self.semitones = [0, 11]
+                self.standard_name = "Major 7th"
+
+            # Triad / Dyad Qualities
             case "maj":
                 self.semitones = [0, 4, 7]
                 self.standard_name = ""
             case "min":
                 self.semitones = [0, 3, 7]
-                self.standard_name = self.quality
+                self.standard_name = "min"
             case "aug":
-                self.semitones = [0, 4, 7]
-                self.standard_name = self.quality
+                self.semitones = [0, 4, 8]
+                self.standard_name = "aug"
             case "dim":
-                self.semitones = [0, 3, 7]
-                self.standard_name = self.quality
+                self.semitones = [0, 3, 6]
+                self.standard_name = "dim"
             case "sus2":
-                self.semitones = [0, 4, 7]
-                self.standard_name = self.quality
+                self.semitones = [0, 2, 7]
+                self.standard_name = "sus2"
             case "sus4":
                 self.semitones = [0, 5, 7]
-                self.standard_name = self.quality
+                self.standard_name = "sus4"
             case "5":
                 self.semitones = [0, 7]
-                self.standard_name = self.quality
+                self.standard_name = "5"
             case "octave":
                 self.semitones = [0, 12]
-                self.standard_name = self.quality
+                self.standard_name = "Octave"
 
-        if self.standard_name in ["sus2", "sus4"]:
-            self.is_suspension = True
-        else:
-            self.is_suspension = False
+        self.is_suspension = self.quality in ["sus2", "sus4"]
 
 EXTENSION_SEMITONE_MAPPING = {
     "6": 9,
@@ -96,6 +143,16 @@ class Extension:
             self.extension = f"maj{self.extension}"
 
         self._update_data()
+
+    def __hash__(self):
+        final_score = self.semitone
+        final_score += self.add * 100
+        final_score += self.major_seventh_present * 200
+        final_score += self.hidden * 400
+        final_score += self.non_standard_extension * 800
+        final_score += self.priority_order * 1600
+
+        return final_score
 
     def __str__(self):
         return f"{self.extension}"
@@ -166,6 +223,9 @@ class Alteration:
     def __str__(self):
         return self.alteration
 
+    def __hash__(self):
+        return hash(f"{self.alteration}{self.hidden}")
+
 @dataclass
 class Omit:
     omit: Literal["no3", "no5"]
@@ -174,11 +234,18 @@ class Omit:
     def __str__(self):
         return self.omit
 
+    def __hash__(self):
+        return hash(f"{self.omit}{self.hidden}")
+
 
 @dataclass
 class NoteInput:
     note: int
-    state: bool
+    released: bool = field(default=False)
+    is_sustained: bool = field(default=False)
+
+    def __hash__(self):
+        return hash(f"{self.note}{self.is_sustained}{self.state}")
 
 
 @dataclass
@@ -254,7 +321,11 @@ class Chord:
         else:
             list_of_additions = non_hidden_extensions + self.alterations + self.omits
 
-            final_name += self.quality.standard_name
+            if len(self.quality.semitones) == 2:
+                final_name += ' '
+                final_name += self.quality.standard_name
+            else:
+                final_name += self.quality.standard_name
 
             if list_of_additions:
                 if (isinstance(list_of_additions[0], Extension) and list_of_additions[0].add or

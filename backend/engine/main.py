@@ -18,32 +18,38 @@ from backend.engine.utils.classes.dataclass import Chord
 
 class Engine:
     def __init__(self, sound_file: Path = None):
-        self.current_notes: list[int] = list()
+        self.current_notes: dict[int, NoteInput] = dict()
         self.current_chord: list[Chord] = list()
-        self.last_time: float = time.time()
-        self.last_time_delta: float = 0.0
-        self.chord_debounce_time: float = 0.005
-        self.debounce_chord: list[Chord] = list()
+        self.is_sustained: bool = False
 
         self._chord_analyzer: ChordEngine = ChordEngine()
 
         self.sound_file = sound_file
 
-    async def note_input_receive(self, data: NoteInput):
-        if data.state:
-            self.current_notes.append(data.note)
-        else:
-            if data.note in self.current_notes:
-                self.current_notes.remove(data.note)
-            else:
-                pass
-
-        await self.get_current_chord()
-
-
     async def get_current_chord(self):
-        self.current_chord = self._chord_analyzer.notes_to_chord(self.current_notes)
+        self.current_chord = self._chord_analyzer.notes_to_chord([note.note for note in self.current_notes.values()])
 
+    async def note_on(self, note: int):
+        self.current_notes[note] = (NoteInput(note, released=False, is_sustained=self.is_sustained))
+
+    async def note_off(self, note: int):
+        self.current_notes[note].released = True
+
+        await self._cleanup_notes()
+
+    async def set_sustain(self, value):
+        self.is_sustained = value
+
+        for key in self.current_notes.keys():
+            self.current_notes[key].is_sustained = value
+
+        await self._cleanup_notes()
+
+    async def _cleanup_notes(self):
+        self.current_notes = {
+            k: v for k, v in self.current_notes.items()
+            if (not v.released) or v.is_sustained
+        }
 
     async def read_midi_file(self, midi_file: Path, play_sound: bool = False) -> AsyncGenerator[list[Chord], None]:
         mid = MidiFile(str(midi_file))
@@ -61,26 +67,39 @@ class Engine:
 
             if msg.type == 'note_on':
                 if msg.velocity > 0:
-                    await self.note_input_receive(NoteInput(msg.note, True))
                     if play_sound and self.sound_file:
                         fs.noteon(0, msg.note, msg.velocity)
+
+                    await self.note_on(msg.note)
                 else:
-                    await self.note_input_receive(NoteInput(msg.note, False))
                     if play_sound and self.sound_file:
                         fs.noteoff(0, msg.note)
 
+                    await self.note_off(msg.note)
+            elif msg.is_cc(64):
+                if msg.value > 64:
+                    await self.set_sustain(True)
+                else:
+                    await self.set_sustain(False)
+
+
             await asyncio.sleep(msg.time)
+            await self.get_current_chord()
             yield self.current_chord
+
 
 
 
 async def main():
     engine = Engine(sound_file=Path(r"/Users/marb/PycharmProjects/chord-analyzer/backend/engine/database/piano.sf2"))
 
-    async for chords in engine.read_midi_file(Path("/Users/marb/PycharmProjects/chord-analyzer/backend/engine/database/Merry_Go_Round_of_Life_(Howl's_Moving_Castle).midi"), play_sound=True):
+    # async for chords in engine.read_midi_file(Path("/Users/marb/PycharmProjects/chord-analyzer/backend/engine/database/Happy_Birthday_Song_in_Jazz_｜Arr_By_Jonny_May.midi"), play_sound=True):
+    async for chords in engine.read_midi_file(Path("/Users/marb/PycharmProjects/chord-analyzer/backend/engine/database/Merry_Go_Round_of_Life_(Howl's_Moving_Castle).midi"),
+                                              play_sound=True):
         # 'chords' will contain your list[Chord] yielded on every MIDI message
-        print(f"{[chord.chord_name for chord in chords]} | {engine.current_notes}")
-        # pass
+        # print(f"{[chord.chord_name for chord in chords]} | {[note.note for note in engine.current_notes.values()]}")
+        # print(engine.current_notes)
+        pass
 
     # await engine.note_input_receive(NoteInput(60, True))
     # await engine.note_input_receive(NoteInput(64, True))

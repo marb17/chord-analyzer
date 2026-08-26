@@ -46,27 +46,107 @@ class ChordEngine:
                             confidence=7.0
                         ))
 
+
                 if len(pitch_classes) == 2 and i != 1:
-                    if 0 in pitch_classes and 7 in pitch_classes:
+                    if 0 in pitch_classes and 1 in pitch_classes:
                         chords.append(Chord(
                             key=candidate_note,
                             quality=Quality(
-                                "5"
+                                "m2"
                             ),
                             raw_notes=notes,
                             confidence=7.0
                         ))
-
-                # if len(pitch_classes) == 4 and i != 1:
-                #     if pitch_classes == [0, 3, 6, 10]:
-                #         chords.append(Chord(
-                #             key=candidate_note,
-                #             quality=Quality("min"),
-                #             extensions=[Extension("7")],
-                #             alterations=[Alteration("b5"),],
-                #             confidence=7.0,
-                #             raw_notes=notes
-                #         ))
+                    elif 0 in pitch_classes and 2 in pitch_classes:
+                        chords.append(Chord(
+                            key=candidate_note,
+                            quality=Quality(
+                                "M2"
+                            ),
+                            raw_notes=notes,
+                            confidence=7.0
+                        ))
+                    elif 0 in pitch_classes and 3 in pitch_classes:
+                        chords.append(Chord(
+                            key=candidate_note,
+                            quality=Quality(
+                                "m3"
+                            ),
+                            raw_notes=notes,
+                            confidence=7.0
+                        ))
+                    elif 0 in pitch_classes and 4 in pitch_classes:
+                        chords.append(Chord(
+                            key=candidate_note,
+                            quality=Quality(
+                                "M3"
+                            ),
+                            raw_notes=notes,
+                            confidence=7.0
+                        ))
+                    elif 0 in pitch_classes and 5 in pitch_classes:
+                        chords.append(Chord(
+                            key=candidate_note,
+                            quality=Quality(
+                                "P4"
+                            ),
+                            raw_notes=notes,
+                            confidence=7.0
+                        ))
+                    elif 0 in pitch_classes and 6 in pitch_classes:
+                        chords.append(Chord(
+                            key=candidate_note,
+                            quality=Quality(
+                                "TT"
+                            ),
+                            raw_notes=notes,
+                            confidence=7.0
+                        ))
+                    elif 0 in pitch_classes and 7 in pitch_classes:
+                        chords.append(Chord(
+                            key=candidate_note,
+                            quality=Quality(
+                                "P5"
+                            ),
+                            raw_notes=notes,
+                            confidence=7.0
+                        ))
+                    elif 0 in pitch_classes and 8 in pitch_classes:
+                        chords.append(Chord(
+                            key=candidate_note,
+                            quality=Quality(
+                                "m6"
+                            ),
+                            raw_notes=notes,
+                            confidence=7.0
+                        ))
+                    elif 0 in pitch_classes and 9 in pitch_classes:
+                        chords.append(Chord(
+                            key=candidate_note,
+                            quality=Quality(
+                                "M6"
+                            ),
+                            raw_notes=notes,
+                            confidence=7.0
+                        ))
+                    elif 0 in pitch_classes and 10 in pitch_classes:
+                        chords.append(Chord(
+                            key=candidate_note,
+                            quality=Quality(
+                                "m7"
+                            ),
+                            raw_notes=notes,
+                            confidence=7.0
+                        ))
+                    elif 0 in pitch_classes and 11 in pitch_classes:
+                        chords.append(Chord(
+                            key=candidate_note,
+                            quality=Quality(
+                                "M7"
+                            ),
+                            raw_notes=notes,
+                            confidence=7.0
+                        ))
 
 
                 # --- THIRD / SUS DETECTION ---
