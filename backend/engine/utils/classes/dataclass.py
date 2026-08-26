@@ -241,11 +241,21 @@ class Omit:
 @dataclass
 class NoteInput:
     note: int
+    velocity: int
     released: bool = field(default=False)
     is_sustained: bool = field(default=False)
 
     def __hash__(self):
         return hash(f"{self.note}{self.is_sustained}{self.state}")
+
+    def __eq__(self, other):
+        if isinstance(other, NoteInput):
+            return (self.note == other.note and
+                    self.is_sustained == other.is_sustained and
+                    self.released == other.released)
+        elif isinstance(other, int):
+            return self.note == other
+        raise NotImplementedError
 
 
 @dataclass
@@ -295,52 +305,101 @@ class Chord:
         self.alterations = list(set(self.alterations))
         self.omits = list(set(self.omits))
 
+    # @property
+    # def chord_name(self) -> str:
+    #     final_name = ""
+    #
+    #     non_hidden_extensions = [ext for ext in self.extensions.copy() if not ext.hidden]
+    #
+    #     is_add_present = len([True for ext in non_hidden_extensions if ext.add]) >= 2
+    #     standard_extension = [ext for ext in non_hidden_extensions if not ext.non_standard_extension]
+    #
+    #     final_name += midi_to_name(self.key)[0][:-1]  # TODO add proper accidental shit
+    #     if self.quality.quality in ("sus2", "sus4"):
+    #         if non_hidden_extensions:
+    #             biggest_standard = standard_extension[-1] if standard_extension else non_hidden_extensions[-1]
+    #             final_name += biggest_standard.extension
+    #             non_hidden_extensions.remove(biggest_standard)
+    #
+    #         list_of_additions = non_hidden_extensions + self.alterations + self.omits
+    #
+    #         final_name += self.quality.standard_name
+    #
+    #         if len(list_of_additions) != 0 or self.alterations:
+    #             final_name += f"{"(" if len(list_of_additions) > 1 else ""}{"add" if is_add_present else ""}{", ".join([str(add) for add in list_of_additions if not add.hidden])}{")" if len(list_of_additions) > 1 else ""}"
+    #
+    #     else:
+    #         list_of_additions = non_hidden_extensions + self.alterations + self.omits
+    #
+    #         if len(self.quality.semitones) == 2:
+    #             final_name += ' '
+    #             final_name += self.quality.standard_name
+    #         else:
+    #             final_name += self.quality.standard_name
+    #
+    #         if list_of_additions:
+    #             if (isinstance(list_of_additions[0], Extension) and list_of_additions[0].add or
+    #                     isinstance(list_of_additions[0], Alteration)):
+    #                 pass
+    #             else:
+    #                 final_name += str(list_of_additions[0])
+    #                 list_of_additions.pop(0)
+    #
+    #         # if len(list_of_additions) != 0 or self.alterations:
+    #         if len(list_of_additions) != 0:
+    #             final_name += f"{"(" if len(list_of_additions) > 1 else ""}{"add" if is_add_present and len(list_of_additions) > 1 else ""}{", ".join([str(add) for add in list_of_additions if not add.hidden])}{")" if len(list_of_additions) > 1 else ""}"
+    #
+    #     if self.inversion:
+    #         final_name += "/" + midi_to_name(self.inversion)[0][:-1]
+    #
+    #     return final_name
+
     @property
     def chord_name(self) -> str:
-        final_name = ""
+        root_str = midi_to_name(self.key)[0][:-1]
 
-        non_hidden_extensions = [ext for ext in self.extensions.copy() if not ext.hidden]
+        active_exts = [e for e in self.extensions if not e.hidden]
+        active_alts = [a for a in self.alterations if not a.hidden]
+        active_omits = [o for o in self.omits if not o.hidden]
 
-        is_add_present = any([ext.add for ext in non_hidden_extensions])
-        standard_extension = [ext for ext in non_hidden_extensions if not ext.non_standard_extension]
+        qual_str = (" " if len(self.quality.semitones) == 2 else "") + self.quality.standard_name
 
-        final_name += midi_to_name(self.key)[0][:-1]  # TODO add proper accidental shit
-        if self.quality.quality in ("sus2", "sus4"):
-            if non_hidden_extensions:
-                biggest_standard = standard_extension[-1] if standard_extension else non_hidden_extensions[-1]
-                final_name += biggest_standard.extension
-                non_hidden_extensions.remove(biggest_standard)
+        if qual_str == "dim" and any(e.extension in ("dim7", "7") for e in active_exts):
+            qual_str = "dim7"
+            active_exts = [e for e in active_exts if e.extension not in ("dim7", "7")]
 
-            list_of_additions = non_hidden_extensions + self.alterations + self.omits
+        elif qual_str == "aug" and any(e.extension == "maj7" for e in active_exts):
+            qual_str = "maj7"
+            active_alts.append(Alteration("#5"))
+            active_exts = [e for e in active_exts if e.extension != "maj7"]
 
-            final_name += self.quality.standard_name
+        primary_ext = ""
+        parenthetical_items = []
 
-            if len(list_of_additions) != 0 or self.alterations:
-                final_name += f"{"(" if len(list_of_additions) > 1 else ""}{"add" if is_add_present else ""}{", ".join([str(add) for add in list_of_additions if not add.hidden])}{")" if len(list_of_additions) > 1 else ""}"
-
-        else:
-            list_of_additions = non_hidden_extensions + self.alterations + self.omits
-
-            if len(self.quality.semitones) == 2:
-                final_name += ' '
-                final_name += self.quality.standard_name
+        for ext in active_exts:
+            if not ext.add and not primary_ext:
+                primary_ext = ext.extension
             else:
-                final_name += self.quality.standard_name
+                label = f"{"add" if len(parenthetical_items) == 0 else ""}{ext.extension}" if ext.add else ext.extension
+                parenthetical_items.append(label)
 
-            if list_of_additions:
-                if (isinstance(list_of_additions[0], Extension) and list_of_additions[0].add or
-                        isinstance(list_of_additions[0], Alteration)):
-                    pass
-                else:
-                    final_name += str(list_of_additions[0])
-                    list_of_additions.pop(0)
+        parenthetical_items.extend([str(a) for a in active_alts])
+        parenthetical_items.extend([str(o) for o in active_omits])
 
-            # if len(list_of_additions) != 0 or self.alterations:
-            if len(list_of_additions) != 0:
-                final_name += f"{"(" if len(list_of_additions) > 1 else ""}{"add" if is_add_present and len(list_of_additions) > 1 else ""}{", ".join([str(add) for add in list_of_additions if not add.hidden])}{")" if len(list_of_additions) > 1 else ""}"
+        if qual_str in ("sus4", "sus2"):
+            final_name = f"{root_str}{primary_ext}{qual_str}"
+        else:
+            final_name = f"{root_str}{qual_str}{primary_ext}"
+
+        if parenthetical_items:
+            formatted_parens = ", ".join(parenthetical_items)
+            if len(parenthetical_items) > 1 or primary_ext or qual_str:
+                final_name += f"({formatted_parens})"
+            else:
+                final_name += f"({formatted_parens})"
 
         if self.inversion:
-            final_name += "/" + midi_to_name(self.inversion)[0][:-1]
+            bass_str = midi_to_name(self.inversion)[0][:-1]
+            final_name += f"/{bass_str}"
 
         return final_name
-
