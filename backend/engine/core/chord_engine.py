@@ -310,7 +310,8 @@ if __name__ == "__main__":
 
     from backend.engine.utils.default.default_var import EXPANDED_MIDI_CHORDS
 
-    for key, value in MASSIVE_EXPANDED_MIDI_CHORDS.items():
+    # for key, value in MASSIVE_EXPANDED_MIDI_CHORDS.items():
+    for key, value in {"broken maj chord": [51, 58, 62, 63, 67, 70, 74]}.items():
         print(key)
         for chord in engine.notes_to_chord(value):
             # print(str(chord), chord.final_score, chord.confidence, chord.complexity)

@@ -223,6 +223,11 @@ class Chord:
 
         self.final_score = round((self.confidence * 2) / (log(self.complexity + 1.8, 3)), 2)
 
+        # remove dups
+        self.extensions = list(set(self.extensions))
+        self.alterations = list(set(self.alterations))
+        self.omits = list(set(self.omits))
+
     @property
     def chord_name(self) -> str:
         final_name = ""
