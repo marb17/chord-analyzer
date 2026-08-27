@@ -7,6 +7,7 @@ from typing import List, Literal
 import select
 
 from backend.engine.utils.functions.midi import midi_to_name
+from backend.engine.utils.default.default_var import MODES
 
 from dataclasses import dataclass, field
 from typing import List, Literal
@@ -93,6 +94,13 @@ class Quality:
                 self.standard_name = "Octave"
 
         self.is_suspension = self.quality in ["sus2", "sus4"]
+
+    def __eq__(self, other):
+        if isinstance(other, Quality):
+            return self.quality == other.quality
+        elif isinstance(other, str):
+            return self.quality == other
+        raise NotImplementedError
 
 EXTENSION_SEMITONE_MAPPING = {
     "6": 9,
@@ -289,11 +297,15 @@ class Chord:
         cplx += len(self.omits) * 1.5
         cplx += 2.0 if self.inversion else 0
 
-        root_note = min(self.raw_notes)
-        chord_root_note = min(self.key, self.inversion if self.inversion else self.key)
+        if self.raw_notes:
+            root_note = min(self.raw_notes)
+            chord_root_note = min(self.key, self.inversion if self.inversion else self.key)
 
-        if root_note != chord_root_note:
-            cplx += 0.6
+            if root_note != chord_root_note:
+                cplx += 0.6
+        else:
+            if self.key != self.inversion:
+                cplx += 0.6
 
         self.complexity = round(cplx, 2)
         self.confidence = round(self.confidence, 2)
@@ -304,55 +316,6 @@ class Chord:
         self.extensions = list(set(self.extensions))
         self.alterations = list(set(self.alterations))
         self.omits = list(set(self.omits))
-
-    # @property
-    # def chord_name(self) -> str:
-    #     final_name = ""
-    #
-    #     non_hidden_extensions = [ext for ext in self.extensions.copy() if not ext.hidden]
-    #
-    #     is_add_present = len([True for ext in non_hidden_extensions if ext.add]) >= 2
-    #     standard_extension = [ext for ext in non_hidden_extensions if not ext.non_standard_extension]
-    #
-    #     final_name += midi_to_name(self.key)[0][:-1]  # TODO add proper accidental shit
-    #     if self.quality.quality in ("sus2", "sus4"):
-    #         if non_hidden_extensions:
-    #             biggest_standard = standard_extension[-1] if standard_extension else non_hidden_extensions[-1]
-    #             final_name += biggest_standard.extension
-    #             non_hidden_extensions.remove(biggest_standard)
-    #
-    #         list_of_additions = non_hidden_extensions + self.alterations + self.omits
-    #
-    #         final_name += self.quality.standard_name
-    #
-    #         if len(list_of_additions) != 0 or self.alterations:
-    #             final_name += f"{"(" if len(list_of_additions) > 1 else ""}{"add" if is_add_present else ""}{", ".join([str(add) for add in list_of_additions if not add.hidden])}{")" if len(list_of_additions) > 1 else ""}"
-    #
-    #     else:
-    #         list_of_additions = non_hidden_extensions + self.alterations + self.omits
-    #
-    #         if len(self.quality.semitones) == 2:
-    #             final_name += ' '
-    #             final_name += self.quality.standard_name
-    #         else:
-    #             final_name += self.quality.standard_name
-    #
-    #         if list_of_additions:
-    #             if (isinstance(list_of_additions[0], Extension) and list_of_additions[0].add or
-    #                     isinstance(list_of_additions[0], Alteration)):
-    #                 pass
-    #             else:
-    #                 final_name += str(list_of_additions[0])
-    #                 list_of_additions.pop(0)
-    #
-    #         # if len(list_of_additions) != 0 or self.alterations:
-    #         if len(list_of_additions) != 0:
-    #             final_name += f"{"(" if len(list_of_additions) > 1 else ""}{"add" if is_add_present and len(list_of_additions) > 1 else ""}{", ".join([str(add) for add in list_of_additions if not add.hidden])}{")" if len(list_of_additions) > 1 else ""}"
-    #
-    #     if self.inversion:
-    #         final_name += "/" + midi_to_name(self.inversion)[0][:-1]
-    #
-    #     return final_name
 
     @property
     def chord_name(self) -> str:
@@ -403,3 +366,32 @@ class Chord:
             final_name += f"/{bass_str}"
 
         return final_name
+
+    def is_major(self) -> bool:
+        return self.quality in ["maj", "sus2", "sus4"]
+
+    def is_minor(self) -> bool:
+        return self.quality in ["min"]
+
+    def is_dim(self) -> bool:
+        return self.quality in ["dim"]
+
+@dataclass
+class Key:
+    base_key: int
+    mode: Literal["Ionian", "Dorian", "Phrygian", "Lydian", "Mixolydian", "Aeolian", "Locrian"] = field(default="Ionian")
+    diatonic_chords: list[Quality] = field(init=False)
+
+    def __post_init__(self):
+        standard_diatonic_chords = [Quality("maj"),
+                                    Quality("min"),
+                                    Quality("min"),
+                                    Quality("maj"),
+                                    Quality("maj"),
+                                    Quality("min"),
+                                    Quality("dim"),]
+
+        shift = MODES.index(self.mode)
+        order = list(range(shift, 7)) + list(range(shift))
+
+        self.diatonic_chords = [standard_diatonic_chords[i] for i in order]

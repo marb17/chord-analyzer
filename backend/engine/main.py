@@ -32,18 +32,18 @@ class Engine:
 
         self.fs = None
 
-    async def get_current_chord(self):
+    async def _get_current_chord(self) -> None:
         self.current_chord = self._chord_analyzer.notes_to_chord([note.note for note in self.current_notes.values()])
 
-    async def note_on(self, note: int, velocity: int = 64):
+    async def note_on(self, note: int, velocity: int = 64) -> None:
         self.current_notes[note] = (NoteInput(note, velocity=velocity, released=False, is_sustained=self.is_sustained))
 
-    async def note_off(self, note: int):
+    async def note_off(self, note: int) -> None:
         self.current_notes[note].released = True
 
         await self._cleanup_notes()
 
-    async def set_sustain(self, value):
+    async def set_sustain(self, value) -> None:
         self.is_sustained = value
 
         for key in self.current_notes.keys():
@@ -51,7 +51,7 @@ class Engine:
 
         await self._cleanup_notes()
 
-    async def _cleanup_notes(self):
+    async def _cleanup_notes(self) -> None:
         self.current_notes = {
             k: v for k, v in self.current_notes.items()
             if (not v.released) or v.is_sustained
@@ -59,8 +59,7 @@ class Engine:
 
         self._sync_audio_player()
 
-    def _sync_audio_player(self, force_play_notes: list[NoteInput] = None):
-        print(self.currently_playing_notes)
+    def _sync_audio_player(self, force_play_notes: list[NoteInput] = None) -> None:
         if force_play_notes:
             for note in force_play_notes:
                 if note.note in self.currently_playing_notes:
@@ -80,6 +79,7 @@ class Engine:
             self.currently_playing_notes.remove(pitch)
 
     async def read_midi_file(self, midi_file: Path, play_sound: bool = False) -> AsyncGenerator[list[Chord], None]:
+        prev_notes = self.current_notes
         mid = list(MidiFile(str(midi_file)))
         absolute_seconds = 0.0
 
@@ -92,8 +92,6 @@ class Engine:
         start_time = time.perf_counter()
 
         for msg in mid:
-            state_changed = False
-
             absolute_seconds += msg.time
 
             target_time = start_time + absolute_seconds
@@ -110,10 +108,8 @@ class Engine:
                 elif msg.velocity == 0:
                     await self.note_off(msg.note)
                     self._sync_audio_player()
-                state_changed = True
             elif msg.type == 'note_off':
                 print(msg.value)
-                state_changed = True
 
 
             elif msg.is_cc(64):
@@ -121,15 +117,14 @@ class Engine:
                     await self.set_sustain(True)
                 else:
                     await self.set_sustain(False)
-                state_changed = True
             elif msg.is_cc(121) or msg.is_cc(123):
                 self.current_notes = dict()
                 self.current_chord = list()
                 self.is_sustained = False
-                state_changed = True
 
-            if state_changed:
-                await self.get_current_chord()
+            if prev_notes != self.current_notes:
+                prev_notes = self.current_notes
+                await self._get_current_chord()
                 yield self.current_chord
 
 
@@ -142,7 +137,7 @@ async def main():
     # async for chords in engine.read_midi_file(Path("/Users/marb/PycharmProjects/chord-analyzer/backend/engine/database/Merry_Go_Round_of_Life_(Howl's_Moving_Castle).midi"), play_sound=True):
     async for chords in engine.read_midi_file(Path("/Users/marb/PycharmProjects/chord-analyzer/backend/engine/database/Merry-Go-Round_of_Life_Howl's_Moving_Castle_Piano_Tutorial.midi"), play_sound=True):
     # async for chords in engine.read_midi_file(Path("/Users/marb/PycharmProjects/chord-analyzer/backend/engine/database/不可思議のカルテ《Fukashigi_no_Carte》.midi"), play_sound=True):
-    #     print(f"{[chord.chord_name for chord in chords]} | {[note.note for note in engine.current_notes.values()]}")
+        print(f"{[chord.chord_name for chord in chords]} | {[note.note for note in engine.current_notes.values()]}")
         # print(engine.current_notes)
         # print(len(engine.current_notes))
         pass

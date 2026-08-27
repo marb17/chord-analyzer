@@ -15,6 +15,8 @@ PITCH_TO_NOTES_MAP = {
     11: ["B"],
 }
 
+MODES = ["Ionian", "Dorian", "Phrygian", "Lydian", "Mixolydian", "Aeolian", "Locrian"]
+
 MUSICAL_INTERVALS = {
     0: "P1",
     1: "m2",

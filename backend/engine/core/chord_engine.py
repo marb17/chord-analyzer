@@ -1,7 +1,7 @@
 from dataclasses import replace
 
-from backend.engine.utils.classes.dataclass import Chord, Omit, Alteration, Extension, Quality
-from backend.engine.utils.default.default_var import MUSICAL_INTERVALS, MASSIVE_EXPANDED_MIDI_CHORDS
+from backend.engine.utils.classes.dataclass import Chord, Omit, Alteration, Extension, Quality, Key, IntervalOrQuality
+from backend.engine.utils.default.default_var import MODES
 from backend.engine.utils.functions.midi import midi_to_name
 
 
@@ -383,25 +383,336 @@ class ChordEngine:
 
         return sorted(list(set(chords)), key = lambda chrd: chrd.final_score, reverse=True)
 
+    def predict_key(self, chords: list[Chord]) -> Key:
+        def predict_candidate_root(candidate_root: int, chords_to_analyze: list[Chord]) -> float:
+            score = 0.0
+            diatonic_root_notes = [0, 2, 4, 5, 7, 9, 11]
+
+            for idx, chord in enumerate(chords_to_analyze):
+                curr_rel = (chord.key - candidate_root) % 12
+                curr_chord = chord
+                try:
+                    prev_1_chord = chords[idx - 1]
+                    prev_1_rel = (prev_1_chord.key - candidate_root) % 12
+                except IndexError:
+                    prev_1_rel = None
+                    prev_1_chord = None
+                try:
+                    prev_2_chord = chords[idx - 2]
+                    prev_2_rel = (prev_2_chord.key - candidate_root) % 12
+                except IndexError:
+                    prev_2_rel = None
+                    prev_2_chord = None
+                try:
+                    prev_3_chord = chords[idx - 3]
+                    prev_3_rel = (prev_3_chord.key - candidate_root) % 12
+                except IndexError:
+                    prev_3_rel = None
+                    prev_3_chord = None
+
+                is_tonic = False
+
+                # 1 chord
+
+                    # Tonic present I/i
+                if curr_rel == 0 and (curr_chord.is_minor() or curr_chord.is_major()):
+                    score += 10
+                    is_tonic = True
+
+                # 2 chord
+
+                    # IV-I cadance
+                if (curr_rel == 0 and curr_chord.is_major()
+                        and prev_1_rel == 5 and prev_1_chord.is_major()):
+                    score += 15
+
+                    # V-I/i cadence
+                if is_tonic and prev_1_rel == 7 and prev_1_chord.is_major():
+                    score += 50
+
+                    # bVII - I cadence
+                if prev_3_rel == 0 and prev_3_chord.is_major() and prev_1_rel == 10 and prev_1_chord.is_major():
+                    score += 50
+
+                # 3 chord
+
+                    # ii-V-I/i cadence
+                if (is_tonic and
+                        prev_1_rel == 7 and prev_1_chord.is_major() and
+                        prev_2_rel == 2 and prev_2_chord.is_minor()):
+                    score += 100
+
+                    # iidim-V-I/i cadence
+                if (is_tonic and
+                        prev_1_rel == 7 and prev_1_chord.is_major() and
+                        prev_2_rel == 2 and prev_2_chord.is_dim()):
+                    score += 100
+
+                # chord progressions
+
+                    # I - vi - IV - V
+                if (curr_chord.is_major() and curr_rel == 0 and
+                        prev_1_rel == 9 and prev_1_chord.is_minor() and
+                        prev_2_rel == 5 and prev_2_chord.is_major() and
+                        prev_3_rel == 7 and prev_3_chord.is_major()):
+                    score += 250
+
+                    # IV - V - iii - vi
+                if (curr_chord.is_major() and curr_rel == 5 and
+                        prev_1_rel == 7 and prev_1_chord.is_major() and
+                        prev_2_rel == 4 and prev_2_chord.is_minor() and
+                        prev_3_rel == 9 and prev_3_chord.is_minor()):
+                    score += 250
+
+                    # vi - IV - V - I
+                if (curr_chord.is_minor() and curr_rel == 9 and
+                        prev_1_rel == 5 and prev_1_chord.is_major() and
+                        prev_2_rel == 7 and prev_2_chord.is_major() and
+                        prev_3_rel == 0 and prev_3_chord.is_major()):
+                    score += 250
+
+
+            return score
+
+        chord_mapping = list()
+        for chord in chords:
+            if chord.is_major(): qual = 0
+            elif chord.is_minor(): qual = 1
+            elif chord.is_dim(): qual = 2
+            else: qual = 3
+
+
+            chord_mapping.append([
+                chord.key % 12,
+                qual
+            ])
+
+        cleaned_chords = list()
+        prev_key = -1
+        prev_qual = -1
+        for chord, mapping in zip(chords, chord_mapping):
+            if mapping[0] != prev_key and mapping[1] != prev_qual:
+                cleaned_chords.append(chord)
+                prev_key = mapping[0]
+                prev_qual = mapping[1]
+
+
+        for i in range(12):
+            print(midi_to_name(i + (12 * 4))[0], end=" | ")
+            score1 = predict_candidate_root(i, chords)
+            score2 = predict_candidate_root(i, cleaned_chords) / 10
+
+            print(score1, score2, score1 + score2)
+
+
 
 
 if __name__ == "__main__":
     engine = ChordEngine()
 
+
+    def c(root: int, q: IntervalOrQuality) -> Chord:
+        return Chord(key=root+24, quality=Quality(quality=q))
+
+
+    FULL_SONG_TEST_CASES = {
+        # --------------------------------------------------------------------------
+        # 1. "Risk It All" - Bruno Mars
+        # Key: D Major (Root: 2, Mode: Ionian)
+        # Includes full sequence: Intro -> V1 -> Pre-Chorus -> Chorus -> V2 -> Pre-Chorus -> Chorus -> Bridge -> Solo -> Pre-Chorus -> Chorus
+        # --------------------------------------------------------------------------
+        "Bruno Mars - Risk It All (Full Song)": {
+            "expected_root": 2,  # D
+            "expected_mode": "Ionian",
+            "chords": [
+                # Intro
+                c(4, "min"), c(9, "maj"), c(2, "maj"), c(11, "maj"),
+                c(4, "min"), c(9, "maj"),
+                # Verse 1
+                c(4, "min"), c(9, "maj"), c(2, "maj"), c(11, "maj"),
+                c(4, "min"), c(9, "maj"), c(9, "maj"), c(6, "min"), c(6, "min"), c(11, "maj"),
+                # Pre-Chorus
+                c(4, "min"), c(10, "min"), c(6, "min"), c(11, "maj"),
+                # Chorus
+                c(4, "min"), c(9, "maj"), c(2, "maj"),
+                # Verse 2
+                c(4, "min"), c(9, "maj"), c(2, "maj"), c(11, "maj"),
+                c(4, "min"), c(9, "maj"), c(9, "maj"), c(6, "min"), c(6, "min"), c(11, "maj"),
+                c(1, "dim"), c(3, "dim"),
+                # Pre-Chorus
+                c(4, "min"), c(10, "min"), c(6, "min"), c(11, "maj"),
+                # Chorus
+                c(4, "min"), c(9, "maj"), c(2, "maj"), c(2, "sus4"), c(2, "maj"), c(4, "dim"), c(6, "dim"),
+                # Bridge
+                c(10, "min"), c(0, "maj"), c(0, "maj"), c(9, "min"), c(10, "maj"),
+                c(3, "maj"), c(9, "maj"), c(9, "maj"), c(11, "min"), c(9, "maj"), c(2, "maj"),
+                # Guitar Solo
+                c(4, "min"), c(9, "maj"), c(2, "maj"), c(11, "maj"),
+                c(4, "min"), c(9, "maj"), c(9, "maj"), c(6, "min"), c(6, "min"), c(11, "maj"),
+                c(1, "dim"), c(3, "dim"),
+                # Pre-Chorus
+                c(4, "min"), c(10, "min"), c(6, "min"), c(11, "maj"),
+                c(1, "dim"), c(3, "dim"),
+                # Chorus
+                c(4, "min"), c(9, "maj"), c(9, "maj"), c(6, "min"), c(6, "min"), c(11, "maj"),
+                c(1, "dim"), c(3, "dim"), c(4, "min"), c(9, "maj"), c(2, "maj")
+            ]
+        },
+
+        # --------------------------------------------------------------------------
+        # 2. "We'll shine brighter than any other stars" - LeeHi
+        # Key: Db Major (Root: 1, Mode: Ionian)
+        # Full Sequence: Intro -> Verse -> Pre-Chorus -> Chorus -> Bridge -> Interlude -> Verse -> Chorus -> Break -> Piano Solo -> Up-Chorus -> Ending
+        # --------------------------------------------------------------------------
+        "LeeHi - We'll shine brighter than any other stars (Full Song)": {
+            "expected_root": 1,  # Db
+            "expected_mode": "Ionian",
+            "chords": [
+                # Intro
+                c(3, "min"), c(8, "sus4"), c(1, "maj"), c(1, "maj"), c(1, "maj"), c(1, "maj"), c(10, "sus4"),
+                c(3, "min"), c(8, "maj"), c(8, "maj"), c(1, "maj"),
+                # Verse
+                c(3, "min"), c(1, "maj"), c(3, "min"), c(8, "sus4"), c(8, "sus4"), c(1, "maj"),
+                c(3, "min"), c(8, "sus4"), c(8, "maj"), c(8, "sus4"), c(1, "maj"), c(10, "maj"),
+                c(3, "min"), c(8, "sus4"), c(8, "maj"), c(1, "maj"),
+                # Pre-Chorus
+                c(3, "min"), c(8, "sus4"), c(8, "sus4"), c(1, "maj"), c(10, "maj"),
+                c(3, "min"), c(8, "maj"), c(8, "maj"), c(1, "maj"),
+                c(3, "min"), c(8, "sus4"), c(8, "maj"), c(8, "sus4"), c(1, "maj"), c(8, "maj"), c(8, "maj"),
+                c(3, "min"), c(8, "sus4"), c(8, "sus4"), c(1, "maj"),
+                # Chorus
+                c(3, "min"), c(8, "maj"), c(1, "maj"), c(10, "maj"),
+                c(3, "min"), c(8, "maj"), c(1, "maj"),
+                c(3, "min"), c(8, "maj"), c(1, "maj"), c(10, "maj"),
+                c(3, "min"), c(8, "maj"), c(1, "maj"),
+                # Bridge
+                c(3, "min"), c(8, "maj"), c(1, "maj"), c(10, "maj"),
+                c(3, "min"), c(8, "maj"), c(1, "maj"), c(10, "maj"),
+                c(3, "min"), c(8, "maj"), c(1, "maj"), c(10, "maj"),
+                c(3, "min"), c(8, "maj"), c(1, "maj"),
+                # Interlude
+                c(3, "min"), c(8, "maj"), c(1, "maj"), c(10, "maj"),
+                c(3, "min"), c(8, "maj"), c(1, "maj"),
+                # Verse
+                c(3, "min"), c(1, "maj"), c(3, "min"), c(8, "sus4"), c(8, "sus4"), c(1, "maj"),
+                c(3, "min"), c(8, "maj"), c(1, "maj"), c(1, "maj"),
+                c(3, "min"), c(8, "sus4"), c(8, "sus4"), c(1, "maj"),
+                # Chorus
+                c(3, "min"), c(8, "maj"), c(1, "maj"), c(10, "maj"),
+                c(3, "min"), c(8, "maj"), c(1, "maj"),
+                c(3, "min"), c(8, "maj"), c(1, "maj"), c(10, "maj"),
+                c(3, "min"), c(8, "maj"), c(1, "maj"),
+                # Break
+                c(3, "min"), c(8, "maj"), c(1, "maj"), c(10, "maj"),
+                c(3, "min"), c(8, "maj"), c(1, "maj"),
+                # Piano Solo
+                c(3, "min"), c(8, "maj"), c(1, "maj"), c(10, "maj"),
+                c(3, "min"), c(8, "maj"), c(1, "maj"),
+                # Slow - Up Chorus
+                c(3, "min"), c(8, "maj"), c(1, "maj"), c(10, "maj"),
+                c(3, "min"), c(8, "maj"), c(1, "maj"), c(11, "min"), c(10, "maj"),
+                c(3, "min"), c(8, "maj"), c(1, "maj"), c(10, "maj"),
+                c(3, "min"), c(8, "maj"), c(1, "maj"),
+                # Ending
+                c(3, "min"), c(8, "maj"), c(1, "maj"), c(10, "maj"),
+                c(3, "min"), c(8, "maj"), c(1, "maj"), c(10, "maj"),
+                c(3, "min"), c(8, "maj"), c(1, "maj"), c(10, "maj"),
+                c(3, "min"), c(8, "maj"), c(1, "maj")
+            ]
+        },
+
+        # --------------------------------------------------------------------------
+        # 3. "オレンジ (Orange)" - 7!! (Your Lie in April ED 2)
+        # Key: G Major (Root: 7, Mode: Ionian)
+        # Full Progression across all lines
+        # --------------------------------------------------------------------------
+        "7!! - Orange (Full Song)": {
+            "expected_root": 7,  # G
+            "expected_mode": "Ionian",
+            "chords": [
+                # Line 1
+                c(9, "min"), c(0, "maj"), c(2, "maj"), c(2, "maj"), c(2, "maj"),
+                # Line 2
+                c(0, "maj"), c(2, "maj"), c(11, "min"), c(9, "min"), c(0, "min"), c(10, "maj"),
+                # Line 3
+                c(9, "min"), c(0, "maj"), c(2, "maj"), c(2, "maj"), c(2, "maj"),
+                # Line 4
+                c(0, "maj"), c(2, "maj"), c(11, "min"), c(9, "min"), c(0, "min"), c(2, "maj"), c(2, "maj"), c(7, "maj"),
+                # Line 5
+                c(0, "min"), c(2, "maj"), c(2, "maj"), c(9, "min"),
+                # Line 6
+                c(0, "maj"), c(2, "maj"), c(7, "maj"),
+                # Line 7
+                c(0, "min"), c(2, "maj"), c(2, "maj"), c(9, "min"),
+                # Line 8
+                c(0, "maj"), c(0, "min"), c(2, "maj"), c(2, "sus4"), c(2, "maj"),
+                # Line 9
+                c(7, "maj"), c(2, "maj"), c(9, "min"), c(0, "min"), c(2, "maj"),
+                # Line 10
+                c(0, "maj"), c(2, "maj"), c(11, "min"), c(9, "min"), c(0, "min"), c(2, "maj"),
+                # Line 11
+                c(7, "maj"), c(2, "maj"), c(9, "min"), c(0, "min"), c(2, "maj"),
+                # Line 12
+                c(0, "maj"), c(2, "maj"), c(11, "min"), c(9, "min"), c(0, "min"), c(2, "maj"), c(7, "maj"),
+                # Line 13
+                c(9, "min"), c(0, "maj"), c(2, "maj"), c(2, "maj"), c(2, "maj"),
+                # Line 14
+                c(0, "maj"), c(2, "maj"), c(11, "min"), c(9, "min"), c(0, "min"), c(2, "maj"), c(2, "maj"), c(7, "maj"),
+                # Line 15
+                c(0, "min"), c(2, "maj"), c(2, "maj"), c(9, "min"),
+                # Line 16
+                c(0, "maj"), c(2, "maj"), c(7, "maj"),
+                # Line 17
+                c(0, "min"), c(2, "maj"), c(2, "maj"), c(9, "min"),
+                # Line 18
+                c(0, "maj"), c(0, "min"), c(2, "maj"), c(2, "sus4"), c(2, "maj"),
+                # Line 19
+                c(7, "maj"), c(2, "maj"), c(9, "min"), c(0, "min"), c(2, "maj"),
+                # Line 20
+                c(0, "maj"), c(2, "maj"), c(11, "min"), c(9, "min"), c(0, "min"), c(2, "maj"),
+                # Line 21
+                c(7, "maj"), c(2, "maj"), c(9, "min"), c(0, "min"), c(2, "maj"),
+                # Line 22
+                c(0, "maj"), c(2, "maj"), c(11, "min"), c(9, "min"), c(0, "min"), c(2, "maj"), c(7, "maj"),
+                # Line 23
+                c(9, "min"), c(7, "maj"), c(0, "min"), c(2, "maj"), c(7, "maj"), c(2, "maj"),
+                # Line 24
+                c(9, "min"), c(0, "maj"), c(2, "maj"), c(2, "sus4"), c(2, "maj"),
+                # Line 25
+                c(7, "maj"), c(2, "maj"), c(9, "min"), c(0, "min"), c(2, "maj"),
+                # Line 26
+                c(0, "maj"), c(2, "maj"), c(11, "min"), c(9, "min"), c(0, "min"), c(2, "maj"),
+                # Line 27
+                c(7, "maj"), c(2, "maj"), c(9, "min"), c(0, "min"), c(2, "maj"),
+                # Line 28
+                c(0, "maj"), c(2, "maj"), c(11, "min"), c(9, "min"), c(0, "min"), c(2, "maj"), c(7, "maj"), c(2, "maj"),
+                # Line 29
+                c(0, "maj"), c(0, "min"), c(7, "maj"),
+                # Outro
+                c(0, "maj"), c(2, "maj"), c(11, "min"), c(9, "min"), c(0, "min"), c(2, "maj"), c(7, "maj"),
+                c(0, "maj"), c(2, "maj"), c(11, "min"), c(9, "min"), c(0, "min"), c(0, "min"), c(7, "maj")
+            ]
+        }
+    }
+    print("=== FULL SONG KEY PREDICTION TESTS ===\n")
+    for name, data in FULL_SONG_TEST_CASES.items():
+        def run_full_song_tests(predict_fn):
+            predicted = predict_fn(data["chords"])
+            expected = Key(data["expected_root"], mode=data["expected_mode"])
+
+            status = "PASSED" if predicted == expected else f"FAILED (Expected {expected}, got {predicted})"
+            print(f"[{status}] {name} ({len(data['chords'])} total chords)")
+
+        run_full_song_tests(engine.predict_key)
+
     from backend.engine.utils.default.default_var import EXPANDED_MIDI_CHORDS
 
     # for key, value in MASSIVE_EXPANDED_MIDI_CHORDS.items():
-    for key, value in {"broken maj chord": [51, 58, 62, 63, 67, 70, 74]}.items():
-        print(key)
-        for chord in engine.notes_to_chord(value):
-            # print(str(chord), chord.final_score, chord.confidence, chord.complexity)
-            print(chord.chord_name, chord.final_score, chord.confidence, chord.complexity)
-            # print(chord)
-            # break
-        print()
-    # for key, value in {"C_Add9": [60, 64, 67, 74]}.items():
+    # # for key, value in {"broken maj chord": [51, 58, 62, 63, 67, 70, 74]}.items():
     #     print(key)
     #     for chord in engine.notes_to_chord(value):
-    #         print(str(chord))
-    #         print()
+    #         # print(str(chord), chord.final_score, chord.confidence, chord.complexity)
+    #         print(chord.chord_name, chord.final_score, chord.confidence, chord.complexity)
+    #         # print(chord)
+    #         # break
     #     print()
