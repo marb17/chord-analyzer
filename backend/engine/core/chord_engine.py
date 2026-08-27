@@ -428,7 +428,7 @@ class ChordEngine:
 
                     # V-I/i cadence
                 if is_tonic and prev_1_rel == 7 and prev_1_chord.is_major():
-                    score += 50
+                    score += 200
 
                     # bVII - I cadence
                 if prev_3_rel == 0 and prev_3_chord.is_major() and prev_1_rel == 10 and prev_1_chord.is_major():
@@ -440,13 +440,13 @@ class ChordEngine:
                 if (is_tonic and
                         prev_1_rel == 7 and prev_1_chord.is_major() and
                         prev_2_rel == 2 and prev_2_chord.is_minor()):
-                    score += 100
+                    score += 300
 
                     # iidim-V-I/i cadence
                 if (is_tonic and
                         prev_1_rel == 7 and prev_1_chord.is_major() and
                         prev_2_rel == 2 and prev_2_chord.is_dim()):
-                    score += 100
+                    score += 300
 
                 # chord progressions
 
@@ -497,13 +497,16 @@ class ChordEngine:
                 prev_qual = mapping[1]
 
 
+        results = list()
         for i in range(12):
-            print(midi_to_name(i + (12 * 4))[0], end=" | ")
             score1 = predict_candidate_root(i, chords)
-            score2 = predict_candidate_root(i, cleaned_chords) / 10
+            score2 = predict_candidate_root(i, cleaned_chords) // 3
+            results.append(score1 + score2)
+            print(score1 + score2)
 
-            print(score1, score2, score1 + score2)
-
+        highest_scoring_index = max(results)
+        return Key(results.index(highest_scoring_index))
+        # TODO add other modes other than IONIAN
 
 
 
@@ -521,6 +524,137 @@ if __name__ == "__main__":
         # Key: D Major (Root: 2, Mode: Ionian)
         # Includes full sequence: Intro -> V1 -> Pre-Chorus -> Chorus -> V2 -> Pre-Chorus -> Chorus -> Bridge -> Solo -> Pre-Chorus -> Chorus
         # --------------------------------------------------------------------------
+        # Add these to your FULL_SONG_TEST_CASES dictionary:
+
+        "Yoasobi - Racing Into The Night / Yoru ni Kakeru (Full Song)": {
+            "expected_root": 5,  # F Major (Ionian) - Uses Royal Road (Db - Eb - C - Fm in F)
+            "expected_mode": "Ionian",
+            "chords": [
+                # Intro / Chorus Loop (Db - Eb - C - Fm -> Bb - C - F)
+                c(1, "maj"), c(3, "maj"), c(0, "maj"), c(5, "min"),
+                c(10, "min"), c(0, "maj"), c(5, "maj"),
+                c(1, "maj"), c(3, "maj"), c(0, "maj"), c(5, "min"),
+                c(10, "min"), c(0, "maj"), c(5, "maj"),
+
+                # Verse 1
+                c(1, "maj"), c(3, "maj"), c(0, "min"), c(5, "min"),
+                c(10, "min"), c(0, "maj"), c(5, "maj"),
+                c(1, "maj"), c(3, "maj"), c(0, "maj"), c(5, "min"),
+                c(10, "min"), c(0, "maj"), c(5, "maj"),
+
+                # Pre-Chorus
+                c(10, "min"), c(0, "maj"), c(5, "min"),
+                c(1, "maj"), c(3, "maj"), c(0, "maj"),
+                c(10, "min"), c(0, "maj"), c(3, "maj"),
+
+                # Chorus
+                c(1, "maj"), c(3, "maj"), c(0, "maj"), c(5, "min"),
+                c(10, "min"), c(0, "maj"), c(5, "maj"),
+                c(1, "maj"), c(3, "maj"), c(0, "maj"), c(5, "min"),
+                c(10, "min"), c(0, "maj"), c(5, "maj")
+            ]
+        },
+
+        "Taylor Swift - Cruel Summer (Full Song)": {
+            "expected_root": 9,  # A Major (Ionian) - Classic A - C#m - F#m - D Loop
+            "expected_mode": "Ionian",
+            "chords": [
+                # Intro
+                c(9, "maj"), c(1, "min"), c(6, "min"), c(2, "maj"),
+                c(9, "maj"), c(1, "min"), c(6, "min"), c(2, "maj"),
+
+                # Verse 1 & 2
+                c(9, "maj"), c(1, "min"), c(6, "min"), c(2, "maj"),
+                c(9, "maj"), c(1, "min"), c(6, "min"), c(2, "maj"),
+
+                # Chorus
+                c(9, "maj"), c(1, "min"), c(6, "min"), c(2, "maj"),
+                c(9, "maj"), c(1, "min"), c(6, "min"), c(2, "maj"),
+
+                # Bridge
+                c(6, "min"), c(2, "maj"), c(9, "maj"), c(4, "maj"),
+                c(6, "min"), c(2, "maj"), c(9, "maj"), c(4, "maj"),
+
+                # Outro
+                c(9, "maj"), c(1, "min"), c(6, "min"), c(2, "maj"),
+                c(9, "maj")
+            ]
+        },
+
+        "The Beatles - Let It Be (Full Song)": {
+            "expected_root": 0,  # C Major (Ionian) - Textbook I - V - vi - IV
+            "expected_mode": "Ionian",
+            "chords": [
+                # Verse 1
+                c(0, "maj"), c(7, "maj"), c(9, "min"), c(5, "maj"),
+                c(0, "maj"), c(7, "maj"), c(5, "maj"), c(0, "maj"),
+
+                # Chorus
+                c(9, "min"), c(7, "maj"), c(5, "maj"), c(0, "maj"),
+                c(0, "maj"), c(7, "maj"), c(5, "maj"), c(0, "maj"),
+
+                # Verse 2
+                c(0, "maj"), c(7, "maj"), c(9, "min"), c(5, "maj"),
+                c(0, "maj"), c(7, "maj"), c(5, "maj"), c(0, "maj"),
+
+                # Guitar Solo (F - C - G - F - C)
+                c(5, "maj"), c(0, "maj"), c(7, "maj"), c(5, "maj"), c(0, "maj"),
+                c(5, "maj"), c(0, "maj"), c(7, "maj"), c(5, "maj"), c(0, "maj"),
+
+                # Final Chorus & Outro
+                c(9, "min"), c(7, "maj"), c(5, "maj"), c(0, "maj"),
+                c(0, "maj"), c(7, "maj"), c(5, "maj"), c(0, "maj")
+            ]
+        },
+
+        "Earth, Wind & Fire - September (Full Song)": {
+            "expected_root": 9,  # A Major (Ionian) - Heavy IV - V - iii - vi (D - E - C#m - F#m)
+            "expected_mode": "Ionian",
+            "chords": [
+                # Intro
+                c(2, "maj"), c(4, "maj"), c(1, "min"), c(6, "min"),
+                c(2, "maj"), c(4, "maj"), c(1, "min"), c(6, "min"),
+
+                # Verse
+                c(2, "maj"), c(4, "maj"), c(1, "min"), c(6, "min"),
+                c(2, "maj"), c(4, "maj"), c(1, "min"), c(6, "min"),
+                c(2, "maj"), c(4, "maj"), c(1, "min"), c(6, "min"),
+
+                # Chorus
+                c(2, "maj"), c(4, "maj"), c(1, "min"), c(6, "min"),
+                c(2, "maj"), c(4, "maj"), c(1, "min"), c(6, "min"),
+                c(2, "maj"), c(4, "maj"), c(9, "maj"),  # Resolves to A Major!
+
+                # Outro Loop
+                c(2, "maj"), c(4, "maj"), c(1, "min"), c(6, "min"),
+                c(2, "maj"), c(4, "maj"), c(9, "maj")
+            ]
+        },
+
+        "Radiohead - High and Dry (Full Song)": {
+            "expected_root": 4,  # E Major (Ionian) - F#m11 - Aadd9 - E Loop (ii - IV - I)
+            "expected_mode": "Ionian",
+            "chords": [
+                # Verse 1
+                c(6, "min"), c(9, "maj"), c(4, "maj"), c(4, "maj"),
+                c(6, "min"), c(9, "maj"), c(4, "maj"), c(4, "maj"),
+
+                # Chorus
+                c(6, "min"), c(9, "maj"), c(4, "maj"), c(4, "maj"),
+                c(6, "min"), c(9, "maj"), c(4, "maj"), c(4, "maj"),
+
+                # Verse 2
+                c(6, "min"), c(9, "maj"), c(4, "maj"), c(4, "maj"),
+                c(6, "min"), c(9, "maj"), c(4, "maj"), c(4, "maj"),
+
+                # Guitar Solo / Bridge
+                c(6, "min"), c(9, "maj"), c(4, "maj"), c(4, "maj"),
+                c(6, "min"), c(9, "maj"), c(4, "maj"), c(4, "maj"),
+
+                # Outro
+                c(6, "min"), c(9, "maj"), c(4, "maj")
+            ]
+        },
         "Bruno Mars - Risk It All (Full Song)": {
             "expected_root": 2,  # D
             "expected_mode": "Ionian",
@@ -691,6 +825,128 @@ if __name__ == "__main__":
                 # Outro
                 c(0, "maj"), c(2, "maj"), c(11, "min"), c(9, "min"), c(0, "min"), c(2, "maj"), c(7, "maj"),
                 c(0, "maj"), c(2, "maj"), c(11, "min"), c(9, "min"), c(0, "min"), c(0, "min"), c(7, "maj")
+            ]
+        },
+        "Ima Nan Janai? (Hiroo) (Full Song)": {
+            "expected_root": 8,  # Ab / G# Major
+            "expected_mode": "Ionian",
+            "chords": [
+                # Intro
+                c(1, "maj"),  # C#
+                c(1, "min"),  # C#m
+                c(0, "min"),  # Cm
+                c(0, "maj"),  # C7
+                c(5, "min"),  # Fm
+                c(0, "maj"),  # C
+                c(8, "maj"),  # G#
+                c(2, "dim"),  # Dm7b5
+                c(10, "min"),  # A#m
+                c(1, "maj"),  # C#
+                c(3, "maj"),  # D#
+                c(8, "maj"),  # G#
+
+                # Interlude 1
+                c(10, "min"), c(3, "maj"), c(8, "maj"),
+                c(10, "min"), c(3, "maj"), c(8, "maj"), c(5, "min"),
+
+                # Verse 1
+                c(10, "min"), c(3, "maj"), c(5, "min"),
+                c(10, "min"), c(3, "maj"), c(5, "min"), c(0, "maj"),
+
+                # Pre-Chorus 1
+                c(10, "min"), c(3, "maj"), c(8, "maj"), c(0, "maj"),
+                c(10, "min"), c(0, "min"), c(1, "maj"), c(3, "maj"),
+
+                # Chorus 1
+                c(2, "dim"),  # Dm7b5
+                c(1, "maj"),  # C#
+                c(1, "min"),  # C#m
+                c(0, "min"),  # Cm
+                c(5, "min"),  # Fm
+                c(1, "maj"),  # C#
+                c(1, "min"),  # C#m
+                c(7, "dim"),  # Gm7b5
+                c(0, "maj"),  # C7
+                c(5, "min"),  # Fm
+                c(8, "maj"),  # G#
+                c(1, "maj"),  # C#
+                c(1, "min"),  # C#m
+                c(0, "min"),  # Cm
+                c(0, "maj"),  # C7
+                c(5, "min"),  # Fm
+                c(10, "min"),  # A#m
+                c(1, "min"),  # C#m
+                c(8, "maj"),  # G#
+
+                # Interlude 2
+                c(10, "min"), c(3, "maj"), c(8, "maj"),
+                c(10, "min"), c(3, "maj"), c(8, "maj"), c(5, "min"),
+
+                # Verse 2
+                c(10, "min"), c(1, "min"), c(8, "maj"), c(0, "min"),
+                c(10, "min"), c(0, "maj"), c(8, "maj"), c(0, "maj"),
+
+                # Pre-Chorus 2
+                c(10, "min"), c(3, "maj"), c(8, "maj"), c(0, "maj"),
+                c(10, "min"), c(0, "min"), c(1, "maj"), c(3, "maj"),
+                c(1, "maj"), c(0, "maj"), c(5, "min"),
+
+                # Interlude 3
+                c(1, "maj"), c(0, "maj"), c(5, "min"),
+                c(1, "maj"), c(0, "maj"), c(5, "min"),
+                c(10, "min"), c(0, "min"), c(1, "min"), c(6, "maj"), c(6, "maj"),
+
+                # Bridge (Modulates: E / Em -> B -> D)
+                c(4, "maj"),  # E
+                c(4, "min"),  # Em
+                c(10, "dim"),  # A#m7b5
+                c(3, "maj"),  # D#
+                c(8, "min"),  # G#m
+                c(1, "min"),  # C#m
+                c(6, "maj"),  # F#
+                c(11, "maj"),  # B
+                c(6, "min"),  # F#m
+                c(11, "maj"),  # B
+                c(4, "min"),  # Em
+                c(9, "maj"),  # A
+                c(2, "maj"),  # D
+                c(3, "dim"),  # D#m7b5
+                c(4, "min"),  # Em
+                c(4, "maj"),  # E
+                c(9, "maj"),  # A
+                c(3, "maj"),  # D#
+
+                # Chorus 2 (Returns to Ab Major)
+                c(1, "maj"),  # C#
+                c(1, "min"),  # C#m
+                c(0, "min"),  # Cm
+                c(5, "min"),  # Fm
+                c(1, "maj"),  # C#
+                c(1, "min"),  # C#m
+                c(7, "dim"),  # Gm7b5
+                c(0, "maj"),  # C7
+                c(5, "min"),  # Fm
+                c(0, "maj"),  # C
+                c(8, "maj"),  # G#
+                c(2, "dim"),  # Dm7b5
+                c(1, "maj"),  # C#
+                c(1, "min"),  # C#m
+                c(7, "dim"),  # Gm7b5
+                c(0, "maj"),  # C7
+                c(5, "min"),  # Fm
+                c(10, "min"),  # A#m
+                c(1, "min"),  # C#m
+                c(8, "maj"),  # G#
+                c(10, "min"),  # A#m
+                c(1, "min"),  # C#m
+                c(8, "maj"),  # G#
+
+                # Outro
+                c(10, "min"), c(3, "maj"), c(8, "maj"),
+                c(10, "min"), c(3, "maj"), c(8, "maj"), c(5, "min"),
+                c(10, "min"), c(3, "maj"), c(7, "dim"), c(0, "maj"), c(5, "min"),
+                c(10, "min"), c(0, "min"), c(1, "min"), c(3, "maj"),
+                c(8, "maj")  # G# (Final resolution)
             ]
         }
     }
