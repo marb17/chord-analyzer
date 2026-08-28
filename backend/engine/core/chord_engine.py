@@ -424,7 +424,7 @@ class ChordEngine:
                     # IV-I cadance
                 if (curr_rel == 0 and curr_chord.is_major()
                         and prev_1_rel == 5 and prev_1_chord.is_major()):
-                    score += 15
+                    score += 100
 
                     # V-I/i cadence
                 if is_tonic and prev_1_rel == 7 and prev_1_chord.is_major():
@@ -455,6 +455,12 @@ class ChordEngine:
                         prev_1_rel == 9 and prev_1_chord.is_minor() and
                         prev_2_rel == 5 and prev_2_chord.is_major() and
                         prev_3_rel == 7 and prev_3_chord.is_major()):
+                    score += 250
+
+                if (curr_chord.is_major() and curr_rel == 0 and
+                        prev_1_rel == 7 and prev_1_chord.is_major() and
+                        prev_2_rel == 9 and prev_2_chord.is_minor() and
+                        prev_3_rel == 5 and prev_3_chord.is_major()):
                     score += 250
 
                     # IV - V - iii - vi
@@ -506,7 +512,7 @@ class ChordEngine:
 
         highest_scoring_index = max(results)
         return Key(results.index(highest_scoring_index))
-        # TODO add other modes other than IONIAN
+        # TODO add other modes other than IONIAN, or just rewrite ts so buns
 
 
 
