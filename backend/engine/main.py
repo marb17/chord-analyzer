@@ -13,9 +13,11 @@ import mido
 # import tinysoundfont
 import fluidsynth
 import pyaudio
+from flask import Flask, render_template
 
 from backend.engine.utils.classes.dataclass import Chord
 
+app = Flask(__name__)
 
 class Engine:
     def __init__(self,
@@ -38,8 +40,14 @@ class Engine:
     async def note_on(self, note: int, velocity: int = 64) -> None:
         self.current_notes[note] = (NoteInput(note, velocity=velocity, released=False, is_sustained=self.is_sustained))
 
-    async def note_off(self, note: int) -> None:
-        self.current_notes[note].released = True
+    async def note_off(self, note: int, safe_release: bool = True) -> None:
+        try:
+            self.current_notes[note].released = True
+        except KeyError as e:
+            if safe_release:
+                pass
+            else:
+                raise e
 
         await self._cleanup_notes()
 
@@ -122,12 +130,12 @@ class Engine:
                 self.current_chord = list()
                 self.is_sustained = False
 
-            if prev_notes != self.current_notes:
-                prev_notes = self.current_notes
-                await self._get_current_chord()
-                yield self.current_chord
+            await self._get_current_chord()
+            yield self.current_chord
 
-
+    @app.route("/")
+    async def render_notes(self) -> None:
+        ...
 
 
 async def main():
@@ -135,7 +143,10 @@ async def main():
 
     # async for chords in engine.read_midi_file(Path("/Users/marb/PycharmProjects/chord-analyzer/backend/engine/database/Happy_Birthday_Song_in_Jazz_｜Arr_By_Jonny_May.midi"), play_sound=True):
     # async for chords in engine.read_midi_file(Path("/Users/marb/PycharmProjects/chord-analyzer/backend/engine/database/Merry_Go_Round_of_Life_(Howl's_Moving_Castle).midi"), play_sound=True):
-    async for chords in engine.read_midi_file(Path("/Users/marb/PycharmProjects/chord-analyzer/backend/engine/database/Merry-Go-Round_of_Life_Howl's_Moving_Castle_Piano_Tutorial.midi"), play_sound=True):
+    # async for chords in engine.read_midi_file(Path("/Users/marb/PycharmProjects/chord-analyzer/backend/engine/database/あの夢をなぞって_–_YOASOBI.midi"), play_sound=True):
+    await engine.show_music_staff()
+    async for chords in engine.read_midi_file(Path("/Users/marb/PycharmProjects/chord-analyzer/backend/engine/database/緑黄色社会_『Mela!』Music_Video_Ryokuoushoku_Shakai_–_Mela!_–_緑黄色社会_Mela!_–_緑黄色社会_TpTbPno.midi"), play_sound=True):
+    # async for chords in engine.read_midi_file(Path("/Users/marb/PycharmProjects/chord-analyzer/backend/engine/database/Merry-Go-Round_of_Life_Howl's_Moving_Castle_Piano_Tutorial.midi"), play_sound=True):
     # async for chords in engine.read_midi_file(Path("/Users/marb/PycharmProjects/chord-analyzer/backend/engine/database/不可思議のカルテ《Fukashigi_no_Carte》.midi"), play_sound=True):
         print(f"{[chord.chord_name for chord in chords]} | {[note.note for note in engine.current_notes.values()]}")
         # print(engine.current_notes)

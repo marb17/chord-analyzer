@@ -319,7 +319,24 @@ class Chord:
 
     @property
     def chord_name(self) -> str:
-        root_str = midi_to_name(self.key)[0][:-1]
+        def get_default_note(index: int) -> str:
+            enharmonic_notes = midi_to_name(index)
+            index %= 12
+
+            if len(enharmonic_notes) == 1:
+                return enharmonic_notes[0][:-1]
+            elif len(enharmonic_notes) == 2:
+                match index:
+                    case 1: return enharmonic_notes[0][:-1]
+                    case 3: return enharmonic_notes[1][:-1]
+                    case 6: return enharmonic_notes[0][:-1]
+                    case 8: return enharmonic_notes[0][:-1]
+                    case 10: return enharmonic_notes[1][:-1]
+                    case _: raise Exception(index)
+            return enharmonic_notes[0]
+
+
+        root_str = get_default_note(self.key)
 
         active_exts = [e for e in self.extensions if not e.hidden]
         active_alts = [a for a in self.alterations if not a.hidden]
@@ -362,7 +379,7 @@ class Chord:
                 final_name += f"({formatted_parens})"
 
         if self.inversion:
-            bass_str = midi_to_name(self.inversion)[0][:-1]
+            bass_str = get_default_note(self.inversion)
             final_name += f"/{bass_str}"
 
         return final_name
